@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign Up - Quality Operational Dashboard</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Sign Up</h1>
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %} {% endif %} {% endwith %}
+      <form method="POST" id="signupForm" onsubmit="return validateForm(event)">
+        <div class="form-group">
+          <label for="firstname">First Name:</label>
+          <input type="text" id="firstname" name="firstname" required />
+        </div>
+        <div class="form-group">
+          <label for="lastname">Last Name:</label>
+          <input type="text" id="lastname" name="lastname" required />
+        </div>
+        <div class="form-group">
+          <label for="role">Role:</label>
+          <input type="text" id="role" name="role" required />
+        </div>
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            onBlur="validateEmail(this)"
+          />
+          <div id="email-alert" class="text-red-500 text-sm mt-1 hidden"></div>
+        </div>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input type="password" id="password" name="password" required />
+          <div
+            id="password-alert"
+            class="text-red-500 text-sm mt-1 hidden"
+          ></div>
+        </div>
+        <button
+          type="submit"
+          onclick="validatePassword(document.getElementById('password'))"
+        >
+          Sign Up
+        </button>
+      </form>
+      <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+    </div>
+    <script src="{{ url_for('static', filename='js/validation.js') }}"></script>
+  </body>
+</html>

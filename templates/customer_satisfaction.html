@@ -1,0 +1,22 @@
+{% extends "base.html" %} {% block title %}Customer Satisfaction - Quality
+Operational Dashboard{% endblock %} {% block content %}
+<div class="container mx-auto p-6">
+  <h1 class="text-3xl font-bold text-gray-800 mb-8">Customer Satisfaction</h1>
+  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      Customer Satisfaction Score
+    </h2>
+    <p class="text-3xl font-bold text-blue-600">
+      {{ data.customer_satisfaction_score }}/5
+    </p>
+  </div>
+  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">On-Time Delivery</h2>
+    <p class="text-3xl font-bold text-blue-600">{{ data.on_time_delivery }}%</p>
+  </div>
+  <div class="bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">Return Rate</h2>
+    <p class="text-3xl font-bold text-blue-600">{{ data.return_rate }}%</p>
+  </div>
+</div>
+{% endblock %}

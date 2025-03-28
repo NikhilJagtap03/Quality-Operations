@@ -1,0 +1,1351 @@
+{% extends "base.html" %} {% block title %}Production Overview - Quality
+Operational Dashboard{% endblock %} {% block additional_head %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+  .chart-container {
+    height: 600px;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .chart-containers {
+    height: 400px;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .table-container {
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .sticky-header th {
+    position: sticky;
+    top: 0;
+    background-color: #f9fafb;
+    z-index: 10;
+  }
+  .filter-container {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  .filter-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .filter-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #4b5563;
+  }
+  .filter-input {
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+  }
+  .filter-button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-button-primary {
+    background-color: #3b82f6;
+    color: white;
+  }
+  .filter-button-primary:hover {
+    background-color: #2563eb;
+  }
+  .filter-button-secondary {
+    background-color: #9ca3af;
+    color: white;
+  }
+  .filter-button-secondary:hover {
+    background-color: #6b7280;
+  }
+  .sort-button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #d1d5db;
+  }
+  .sort-button:hover {
+    background-color: #e5e7eb;
+  }
+  .sort-button.active {
+    background-color: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+  }
+  .sort-options {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  /* Pagination styles */
+  .pagination-controls {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+  }
+  .pagination-controls select,
+  .pagination-controls input {
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+  }
+  .pagination-controls button {
+    transition: all 0.2s;
+  }
+  .pagination-controls button:not(:disabled):hover {
+    background-color: #e5e7eb;
+  }
+  .pagination-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  /* Make pagination controls responsive */
+  @media (max-width: 768px) {
+    .pagination-controls {
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .pagination-controls > div {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
+{% endblock %} {% block content %}
+<h1 class="text-3xl font-bold text-gray-800 mb-8">Production Overview</h1>
+
+<!-- Daily Production Output and Distribution Charts -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+  <!-- Daily Production Output Chart -->
+  <div class="bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      Daily Production Output
+    </h2>
+    <div class="chart-containers">
+      {% if daily_output_chart %} {{ daily_output_chart|safe }} {% else %}
+      <p class="text-gray-500">No daily production data available</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Production Distribution Chart -->
+  <div class="bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      Production Distribution
+    </h2>
+    <div class="chart-containers">
+      {% if distribution_chart %} {{ distribution_chart|safe }} {% else %}
+      <p class="text-gray-500">No distribution data available</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Daily Coil Production Chart with its own filters -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+  <h2 class="text-xl font-semibold text-gray-700 mb-4">
+    Daily Coil Production
+  </h2>
+
+  <!-- Daily Coil Production Filters -->
+  <div class="filter-container">
+    <div class="filter-group">
+      <div class="filter-item">
+        <label class="filter-label">From Date</label>
+        <input
+          type="date"
+          id="daily-from-date"
+          class="filter-input"
+          placeholder="Select date"
+        />
+      </div>
+      <div class="filter-item">
+        <label class="filter-label">To Date</label>
+        <input
+          type="date"
+          id="daily-to-date"
+          class="filter-input"
+          placeholder="Select date"
+        />
+      </div>
+      <div class="filter-item mt-auto">
+        <button
+          id="apply-daily-filters"
+          class="filter-button filter-button-primary"
+        >
+          Apply Filters
+        </button>
+      </div>
+      <div class="filter-item mt-auto">
+        <button
+          id="export-daily-data"
+          class="filter-button filter-button-secondary"
+        >
+          Export
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-containers">
+    {% if monthly_production_chart %} {{ monthly_production_chart|safe }} {%
+    else %}
+    <p class="text-gray-500">No daily production data available</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-cols-1 gap-8">
+  <!-- Coil Comparison Chart -->
+  <div class="bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      Coil Production Analysis
+    </h2>
+
+    <!-- Chart Filters -->
+    <div class="filter-container">
+      <div class="filter-group">
+        <div class="filter-item">
+          <label class="filter-label">From Date</label>
+          <input
+            type="date"
+            id="chart-from-date"
+            class="filter-input"
+            placeholder="Select date"
+          />
+        </div>
+        <div class="filter-item">
+          <label class="filter-label">To Date</label>
+          <input
+            type="date"
+            id="chart-to-date"
+            class="filter-input"
+            placeholder="Select date"
+          />
+        </div>
+        <div class="filter-item mt-auto">
+          <button
+            id="apply-chart-filters"
+            class="filter-button filter-button-primary"
+          >
+            Apply Filters
+          </button>
+        </div>
+        <div class="filter-item mt-auto">
+          <button
+            id="export-chart-data"
+            class="filter-button filter-button-secondary"
+          >
+            Export
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      {% if coil_chart %} {{ coil_chart|safe }} {% else %}
+      <p class="text-gray-500">No coil comparison data available</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Coil Production Table -->
+  <div class="bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      Coil Production Details
+    </h2>
+
+    <!-- Table Filters -->
+    <div class="filter-container">
+      <div class="filter-group">
+        <div class="filter-item">
+          <label class="filter-label">Serial No</label>
+          <input
+            type="text"
+            id="table-serial-no"
+            class="filter-input"
+            placeholder="Search by Serial No"
+          />
+        </div>
+        <div class="filter-item mt-auto">
+          <button
+            id="search-serial-no"
+            class="filter-button filter-button-primary"
+          >
+            Search Serial No
+          </button>
+        </div>
+        <div class="filter-item">
+          <label class="filter-label">From Date</label>
+          <input
+            type="date"
+            id="table-from-date"
+            class="filter-input"
+            placeholder="Select date"
+          />
+        </div>
+        <div class="filter-item">
+          <label class="filter-label">To Date</label>
+          <input
+            type="date"
+            id="table-to-date"
+            class="filter-input"
+            placeholder="Select date"
+          />
+        </div>
+        <div class="filter-item mt-auto">
+          <button
+            id="apply-table-filters"
+            class="filter-button filter-button-primary"
+          >
+            Apply Date Filters
+          </button>
+        </div>
+        <div class="filter-item mt-auto">
+          <button
+            id="export-table-data"
+            class="filter-button filter-button-secondary"
+          >
+            Export
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sort Options -->
+    <div class="sort-options">
+      <span class="font-medium text-gray-700">Sort by:</span>
+      <button id="sort-sl-no" class="sort-button active" data-sort="slNo">
+        Serial Number
+      </button>
+      <!-- Clearance Date sorting removed -->
+      <button id="sort-weight" class="sort-button" data-sort="finalWeight">
+        Weight
+      </button>
+      <button id="sort-thickness" class="sort-button" data-sort="finalThk">
+        Thickness
+      </button>
+      <button id="sort-width" class="sort-button" data-sort="finalWidth">
+        Width
+      </button>
+      <button id="sort-age" class="sort-button" data-sort="age">Age</button>
+      <button id="sort-product" class="sort-button" data-sort="product">
+        Product
+      </button>
+      <button
+        id="clear-sorting"
+        class="filter-button filter-button-secondary ml-4"
+      >
+        Clear Sorting
+      </button>
+    </div>
+
+    <div class="table-container">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50 sticky-header">
+          <tr>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              SL No
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Product
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Serial No
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Mother Serial No
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Plan Thickness
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Final Thk
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Plan Width
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Final Width
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Plan TDC
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Final Tdc
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Ip Idm
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Order Customer
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Actual Customer
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Order Path
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Actual Path
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Order Weight Min-Max
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Final Weight
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Order Yield Strength
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Yield Strength
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Order Elongation
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Elongation
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Order Hardness
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Hardness
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Liner Marking
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Sleeve Type
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Lab Result
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Lab Test Remark
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Surface Result
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Surface Remark
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Final Status
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Major Defect
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Def Allocation
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Rework Unit
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Suggestions
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Prev Unit
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              NCO Flag
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Deversion Cat
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Clearance Date
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Age
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Material
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Oil Type
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Oiler Usage
+            </th>
+            <th
+              scope="col"
+              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Shift
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for item in coil_data %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.slNo }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.product }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.serialNo }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.motherSerialNo }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.planThickness }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.finalThk }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.planWidth }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.finalWidth }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.planTdc }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.finalTdc }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.ipIdm }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.orderCustomer }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.actualCustomer }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.orderPath }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.actualPath }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.orderWeightMinMax }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.finalWeight }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.orderYieldStrength }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.yieldStrength }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.orderElongation }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.elongation }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.orderHardness }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.hardness }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.linerMarking }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.sleeveType }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.labResult }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.labTestRemark }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.surfaceResult }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.surfaceRemark }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm">
+              <span
+                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {% if item.finalStatus == 'Approved' %}bg-green-100 text-green-800 {% elif item.finalStatus == 'Rejected' %}bg-red-100 text-red-800 {% else %}bg-yellow-100 text-yellow-800{% endif %}"
+              >
+                {{ item.finalStatus }}
+              </span>
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.majorDefect }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.defAllocation }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.reworkUnit }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.suggestions }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.prevUnit }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.ncoFlag }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.deversionCat }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.clearanceDate }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.age }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.material }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.oilType }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.oilerUsage }}
+            </td>
+            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+              {{ item.shift }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <!-- Pagination controls -->
+    <div
+      class="pagination-controls flex justify-between items-center mt-4 bg-gray-50 p-3 rounded-md"
+    >
+      <div class="flex items-center space-x-2">
+        <span class="text-sm text-gray-600">Show</span>
+        <select id="items-per-page" class="text-sm border rounded p-1">
+          <option value="10" selected>10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <span class="text-sm text-gray-600">entries</span>
+      </div>
+      <div class="text-sm text-gray-600" id="pagination-info">
+        Showing 0 to 0 of 0 entries
+      </div>
+      <div class="flex space-x-2">
+        <button
+          id="prev-page"
+          class="px-3 py-1 bg-gray-200 text-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Previous
+        </button>
+        <div class="flex items-center px-3 py-1 bg-white border rounded">
+          <span class="text-sm">Page</span>
+          <input
+            type="number"
+            id="current-page"
+            class="w-12 text-center mx-2 border-0 focus:outline-none"
+            value="1"
+            min="1"
+          />
+          <span class="text-sm">of <span id="total-pages">1</span></span>
+        </div>
+        <button
+          id="next-page"
+          class="px-3 py-1 bg-gray-200 text-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  $(document).ready(function () {
+    // Pagination variables
+    let currentPage = 1;
+    let itemsPerPage = 10;
+    let totalPages = 1;
+    let paginatedData = [];
+
+    // Initial load of all data
+    loadData();
+
+    // Chart filter button click handler
+    $("#apply-chart-filters").on("click", function () {
+      loadCoilChart();
+    });
+
+    // Daily production chart filter button click handler
+    $("#apply-daily-filters").on("click", function () {
+      loadDailyProductionChart();
+    });
+
+    // Table filter button click handler
+    $("#apply-table-filters").on("click", function () {
+      loadTableData();
+    });
+
+    // Serial number search button click handler
+    $("#search-serial-no").on("click", function () {
+      loadTableData();
+    });
+
+    // Serial number input enter key handler
+    $("#table-serial-no").on("keypress", function (e) {
+      if (e.which === 13) {
+        loadTableData();
+      }
+    });
+
+    // Export buttons click handlers
+    $("#export-chart-data").on("click", function () {
+      exportData("chart");
+    });
+
+    $("#export-daily-data").on("click", function () {
+      exportData("daily");
+    });
+
+    $("#export-table-data").on("click", function () {
+      exportData("table");
+    });
+
+    // Sort buttons click handlers
+    $(".sort-button").on("click", function () {
+      // Remove active class from all buttons
+      $(".sort-button").removeClass("active");
+      // Add active class to clicked button
+      $(this).addClass("active");
+
+      // Get sort parameter
+      const sortParam = $(this).data("sort");
+      sortTableBy(sortParam);
+    });
+
+    // Pagination handlers
+    $("#items-per-page").on("change", function () {
+      itemsPerPage = parseInt($(this).val());
+      currentPage = 1; // Reset to first page when changing items per page
+      applyPagination();
+    });
+
+    $("#prev-page").on("click", function () {
+      if (currentPage > 1) {
+        currentPage--;
+        applyPagination();
+      }
+    });
+
+    $("#next-page").on("click", function () {
+      if (currentPage < totalPages) {
+        currentPage++;
+        applyPagination();
+      }
+    });
+
+    $("#current-page").on("change", function () {
+      const newPage = parseInt($(this).val());
+      if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        applyPagination();
+      }
+    });
+
+    $("#current-page").on("change", function () {
+      const newPage = parseInt($(this).val());
+      if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        applyPagination();
+      } else {
+        $(this).val(currentPage); // Reset to valid value
+      }
+    });
+
+    function loadData() {
+      loadCoilChart();
+      loadDailyProductionChart();
+      loadTableData();
+    }
+
+    function loadCoilChart() {
+      const fromDate = $("#chart-from-date").val();
+      const toDate = $("#chart-to-date").val();
+
+      $.ajax({
+        url: "/production_overview/chart_data",
+        method: "GET",
+        data: {
+          chart_type: "coil",
+          from_date: fromDate,
+          to_date: toDate,
+        },
+        success: function (response) {
+          if (response.coil_chart) {
+            $(".chart-container").html(response.coil_chart);
+          }
+          if (response.daily_output_chart) {
+            $(".chart-containers").first().html(response.daily_output_chart);
+          }
+          if (response.distribution_chart) {
+            $(".chart-containers").eq(1).html(response.distribution_chart);
+          }
+        },
+        error: function (xhr, status, error) {
+          console.error("Error loading chart data:", error);
+          alert("Error loading chart data. Please try again.");
+        },
+      });
+    }
+
+    function loadDailyProductionChart() {
+      const fromDate = $("#daily-from-date").val();
+      const toDate = $("#daily-to-date").val();
+
+      $.ajax({
+        url: "/production_overview/daily_chart_data",
+        method: "GET",
+        data: {
+          from_date: fromDate,
+          to_date: toDate,
+        },
+        success: function (response) {
+          if (response.daily_production_chart) {
+            $(".chart-containers").eq(2).html(response.daily_production_chart);
+          }
+        },
+        error: function (xhr, status, error) {
+          console.error("Error loading daily production chart data:", error);
+          alert("Error loading daily production chart data. Please try again.");
+        },
+      });
+    }
+
+    function loadTableData() {
+      const serialNo = $("#table-serial-no").val();
+      const fromDate = $("#table-from-date").val();
+      const toDate = $("#table-to-date").val();
+
+      $.ajax({
+        url: "/production_overview/table_data",
+        method: "GET",
+        data: {
+          serial_no: serialNo,
+          from_date: fromDate,
+          to_date: toDate,
+        },
+        success: function (response) {
+          tableData = response.coil_data;
+          // Apply the current active sort
+          const activeSortParam = $(".sort-button.active").data("sort");
+          sortTableBy(activeSortParam);
+        },
+        error: function (xhr, status, error) {
+          console.error("Error loading table data:", error);
+          alert("Error loading table data. Please try again.");
+        },
+      });
+    }
+
+    // Global variable for table data
+    let tableData = [];
+
+    // Function to sort the table by a specific parameter
+    function sortTableBy(parameter, direction = "asc") {
+      if (!tableData || tableData.length === 0) return;
+
+      // Store current sort parameter and direction for export
+      currentSortParam = parameter;
+      currentSortDirection = direction;
+
+      const sortedData = [...tableData].sort((a, b) => {
+        let aValue = a[parameter];
+        let bValue = b[parameter];
+
+        // Handle numeric values
+        if (!isNaN(parseFloat(aValue)) && !isNaN(parseFloat(bValue))) {
+          aValue = parseFloat(aValue);
+          bValue = parseFloat(bValue);
+          return direction === "asc" ? aValue - bValue : bValue - aValue;
+        }
+        // Handle string values (case-insensitive)
+        else if (typeof aValue === "string" && typeof bValue === "string") {
+          aValue = aValue.toLowerCase();
+          bValue = bValue.toLowerCase();
+          return direction === "asc"
+            ? aValue.localeCompare(bValue)
+            : bValue.localeCompare(aValue);
+        }
+
+        // Default comparison
+        return 0;
+      });
+
+      // Apply pagination to the sorted data
+      applyPagination(sortedData);
+    }
+
+    // Function to apply pagination to the data
+    function applyPagination(data = null) {
+      // If data is provided, use it; otherwise, use the current tableData
+      const dataToUse = data || tableData;
+
+      if (!dataToUse || dataToUse.length === 0) {
+        updatePaginationControls(0, 0, 0);
+        updateTableWithData([]);
+        return;
+      }
+
+      // Calculate total pages
+      totalPages = Math.ceil(dataToUse.length / itemsPerPage);
+
+      // Ensure current page is valid
+      if (currentPage > totalPages) {
+        currentPage = totalPages;
+      }
+
+      // Calculate start and end indices for the current page
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = Math.min(startIndex + itemsPerPage, dataToUse.length);
+
+      // Get the data for the current page
+      paginatedData = dataToUse.slice(startIndex, endIndex);
+
+      // Update the table with the paginated data
+      updateTableWithData(paginatedData);
+
+      // Update pagination controls
+      updatePaginationControls(startIndex, endIndex, dataToUse.length);
+    }
+
+    // Function to update pagination controls
+    function updatePaginationControls(startIndex, endIndex, totalItems) {
+      // Update pagination info text
+      if (totalItems > 0) {
+        $("#pagination-info").text(
+          `Showing ${startIndex + 1} to ${endIndex} of ${totalItems} entries`
+        );
+      } else {
+        $("#pagination-info").text("Showing 0 to 0 of 0 entries");
+      }
+
+      // Update total pages
+      $("#total-pages").text(totalPages);
+
+      // Update current page input
+      $("#current-page").val(currentPage);
+
+      // Enable/disable previous button
+      if (currentPage <= 1) {
+        $("#prev-page").prop("disabled", true);
+      } else {
+        $("#prev-page").prop("disabled", false);
+      }
+
+      // Enable/disable next button
+      if (currentPage >= totalPages) {
+        $("#next-page").prop("disabled", true);
+      } else {
+        $("#next-page").prop("disabled", false);
+      }
+    }
+
+    // Add global variables to track current sort state
+    let currentSortParam = "slNo";
+    let currentSortDirection = "asc";
+    // Add a new flag to track if sorting has been explicitly applied
+    // Add this after the currentSortParam and currentSortDirection variables
+    let sortingApplied = false;
+
+    // Update the sort buttons click handler to toggle direction
+    $(".sort-button").on("click", function () {
+      // Remove active class from all buttons
+      $(".sort-button").removeClass("active");
+      // Add active class to clicked button
+      $(this).addClass("active");
+
+      // Get sort parameter
+      const sortParam = $(this).data("sort");
+
+      // Toggle direction if clicking the same column
+      if (sortParam === currentSortParam) {
+        currentSortDirection = currentSortDirection === "asc" ? "desc" : "asc";
+      } else {
+        currentSortDirection = "asc";
+      }
+
+      // Set the flag to indicate sorting has been explicitly applied
+      sortingApplied = true;
+
+      sortTableBy(sortParam, currentSortDirection);
+    });
+
+    // Function to update the table with the provided data
+    function updateTableWithData(data) {
+      const tbody = $("tbody");
+      tbody.empty();
+
+      if (data && data.length > 0) {
+        data.forEach(function (item) {
+          const row = `
+            <tr class="hover:bg-gray-50">
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.slNo || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.product || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.serialNo || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.motherSerialNo || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.planThickness || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.finalThk || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.planWidth || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.finalWidth || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.planTdc || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.finalTdc || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.ipIdm || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.orderCustomer || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.actualCustomer || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.orderPath || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.actualPath || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.orderWeightMinMax || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.finalWeight || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.orderYieldStrength || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.yieldStrength || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.orderElongation || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.elongation || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.orderHardness || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.hardness || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.linerMarking || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.sleeveType || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.labResult || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.labTestRemark || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.surfaceResult || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.surfaceRemark || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                  item.finalStatus === "Approved"
+                    ? "bg-green-100 text-green-800"
+                    : item.finalStatus === "Rejected"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-yellow-100 text-yellow-800"
+                }">${item.finalStatus || ""}</span>
+              </td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.majorDefect || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.defAllocation || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.reworkUnit || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.suggestions || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.prevUnit || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.ncoFlag || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.deversionCat || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.clearanceDate || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.age || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.material || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.oilType || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.oilerUsage || ""
+              }</td>
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
+                item.shift || ""
+              }</td>
+            </tr>
+          `;
+          tbody.append(row);
+        });
+      } else {
+        tbody.append(
+          '<tr><td colspan="40" class="px-3 py-4 text-center text-gray-500">No data available</td></tr>'
+        );
+      }
+    }
+
+    // Update the existing updateTable function to use the new pagination functionality
+    function updateTable(data) {
+      tableData = data;
+      // Apply the current active sort and pagination
+      const activeSortParam = $(".sort-button.active").data("sort");
+      sortTableBy(activeSortParam || "slNo");
+    }
+
+    // Update the export function to include sorting parameters
+    function exportData(type) {
+      let fromDate, toDate, serialNo, url;
+
+      if (type === "chart") {
+        fromDate = $("#chart-from-date").val();
+        toDate = $("#chart-to-date").val();
+        url = `/export_data?type=${type}`;
+      } else if (type === "daily") {
+        fromDate = $("#daily-from-date").val();
+        toDate = $("#daily-to-date").val();
+        url = `/export_data?type=${type}`;
+      } else {
+        fromDate = $("#table-from-date").val();
+        toDate = $("#table-to-date").val();
+        serialNo = $("#table-serial-no").val();
+        url = `/export_data?type=${type}`;
+      }
+
+      if (fromDate) url += `&from_date=${fromDate}`;
+      if (toDate) url += `&to_date=${toDate}`;
+      if (serialNo && type === "table") url += `&serial_no=${serialNo}`;
+
+      // Only add sorting parameters if sorting has been explicitly applied
+      if (sortingApplied && type === "table") {
+        url += `&sort_by=${currentSortParam}&sort_direction=${currentSortDirection}`;
+      }
+
+      console.log("Export URL:", url);
+      window.location.href = url;
+    }
+
+    // Clear sorting button click handler
+    $("#clear-sorting").on("click", function () {
+      // Remove active class from all sort buttons
+      $(".sort-button").removeClass("active");
+
+      // Reset current sort parameters
+      currentSortParam = "slNo";
+      currentSortDirection = "asc";
+
+      // Set default sort button as active
+      $("#sort-sl-no").addClass("active");
+
+      // Reset the sorting applied flag
+      sortingApplied = false;
+
+      // Apply default sorting
+      sortTableBy(currentSortParam, currentSortDirection);
+    });
+  });
+</script>
+{% endblock %}

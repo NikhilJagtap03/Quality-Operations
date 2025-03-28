@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Quality Operational Dashboard{% endblock %}</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    {% block additional_head %}{% endblock %}
+    <style>
+      .sidebar {
+        height: 100vh;
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 250px;
+        z-index: 10;
+        transition: transform 0.3s ease-in-out;
+      }
+
+      .content {
+        margin-left: 250px;
+        transition: margin-left 0.3s ease-in-out;
+      }
+
+      @media (max-width: 768px) {
+        .sidebar {
+          transform: translateX(-100%);
+        }
+
+        .sidebar.open {
+          transform: translateX(0);
+        }
+
+        .content {
+          margin-left: 0;
+        }
+      }
+
+      .active-link {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-left: 4px solid #fff;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100">
+    <!-- Sidebar -->
+    <div class="sidebar bg-gray-800 text-white">
+      <div class="p-5">
+        <h2 class="text-2xl font-bold mb-5">Quality Dashboard</h2>
+        <nav>
+          <ul>
+            <li class="mb-2">
+              <a
+                href="{{ url_for('dashboard') }}"
+                class="block py-2 px-4 rounded transition duration-200 hover:bg-gray-700 {% if request.path == url_for('dashboard') %}active-link{% endif %}"
+              >
+                Dashboard
+              </a>
+            </li>
+            <li class="mb-2">
+              <a
+                href="{{ url_for('production_overview.show_production_overview') }}"
+                class="block py-2 px-4 rounded transition duration-200 hover:bg-gray-700 {% if request.path == url_for('production_overview.show_production_overview') %}active-link{% endif %}"
+              >
+                Production Overview
+              </a>
+            </li>
+            <li class="mb-2">
+              <a
+                href="{{ url_for('equipment_performance.show_equipment_performance') }}"
+                class="block py-2 px-4 rounded transition duration-200 hover:bg-gray-700 {% if request.path == url_for('equipment_performance.show_equipment_performance') %}active-link{% endif %}"
+              >
+                Equipment Performance
+              </a>
+            </li>
+            <li class="mb-2">
+              <a
+                href="{{ url_for('quality_control.show_quality_control') }}"
+                class="block py-2 px-4 rounded transition duration-200 hover:bg-gray-700 {% if request.path == url_for('quality_control.show_quality_control') %}active-link{% endif %}"
+              >
+                Quality Control
+              </a>
+            </li>
+            <li class="mb-2">
+              <a
+                href="{{ url_for('customer_satisfaction.show_customer_satisfaction') }}"
+                class="block py-2 px-4 rounded transition duration-200 hover:bg-gray-700 {% if request.path == url_for('customer_satisfaction.show_customer_satisfaction') %}active-link{% endif %}"
+              >
+                Customer Satisfaction
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+      <div class="absolute bottom-0 w-full p-5 border-t border-gray-700">
+        <a
+          href="{{ url_for('logout') }}"
+          class="block w-full py-2 px-4 bg-red-600 text-white text-center rounded hover:bg-red-700 transition duration-200"
+        >
+          Logout
+        </a>
+      </div>
+    </div>
+
+    <!-- Mobile menu button -->
+    <div class="md:hidden fixed top-4 right-4 z-20">
+      <button id="menu-toggle" class="bg-gray-800 text-white p-2 rounded-md">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-6 w-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 6h16M4 12h16M4 18h16"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <div class="p-5">{% block content %}{% endblock %}</div>
+    </div>
+
+    <script>
+      // Mobile menu toggle
+      document
+        .getElementById("menu-toggle")
+        .addEventListener("click", function () {
+          document.querySelector(".sidebar").classList.toggle("open");
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

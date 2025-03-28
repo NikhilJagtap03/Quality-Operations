@@ -1,0 +1,26 @@
+{% extends "base.html" %} {% block title %}Equipment Performance - Quality
+Operational Dashboard{% endblock %} {% block content %}
+<div class="container mx-auto p-6">
+  <h1 class="text-3xl font-bold text-gray-800 mb-8">Equipment Performance</h1>
+  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">
+      Overall Equipment Effectiveness (OEE)
+    </h2>
+    <p class="text-3xl font-bold text-blue-600">
+      {{ data.overall_equipment_effectiveness }}%
+    </p>
+  </div>
+  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">Availability</h2>
+    <p class="text-3xl font-bold text-blue-600">{{ data.availability }}%</p>
+  </div>
+  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">Performance</h2>
+    <p class="text-3xl font-bold text-blue-600">{{ data.performance }}%</p>
+  </div>
+  <div class="bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">Quality</h2>
+    <p class="text-3xl font-bold text-blue-600">{{ data.quality }}%</p>
+  </div>
+</div>
+{% endblock %}
