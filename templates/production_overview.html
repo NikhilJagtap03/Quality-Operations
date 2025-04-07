@@ -2,27 +2,104 @@
 Operational Dashboard{% endblock %} {% block additional_head %}
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <style>
-  .chart-container {
-    height: 600px;
-    width: 100%;
-    max-width: 900px;
-    margin: 0 auto;
+  body {
+    overflow-x: hidden;
   }
-  .chart-containers {
-    height: 400px;
+  .dashboard-container {
+    display: flex;
+    flex-direction: column;
     width: 100%;
-    max-width: 900px;
-    margin: 0 auto;
   }
-  .table-container {
+  .tab-container {
+    display: flex;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 1rem;
     overflow-x: auto;
-    max-width: 100%;
+    scrollbar-width: thin;
   }
-  .sticky-header th {
-    position: sticky;
+  .tab {
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+  }
+  .tab.active {
+    border-bottom-color: #3b82f6;
+    color: #3b82f6;
+  }
+  .tab-content {
+    display: none;
+  }
+  .tab-content.active {
+    display: block;
+  }
+  .chart-container {
+    height: 320px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .chart-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .chart-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  .chart-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+  }
+  .chart-card-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .chart-card-body {
+    flex: 1;
+    min-height: 300px;
+    position: relative;
+  }
+  .loading-indicator {
+    position: absolute;
     top: 0;
-    background-color: #f9fafb;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
     z-index: 10;
+  }
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
   .filter-container {
     background-color: #f8f9fa;
@@ -75,6 +152,19 @@ Operational Dashboard{% endblock %} {% block additional_head %}
   .filter-button-secondary:hover {
     background-color: #6b7280;
   }
+  .table-container {
+    overflow-x: auto;
+    max-width: 100%;
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  .sticky-header th {
+    position: sticky;
+    top: 0;
+    background-color: #f9fafb;
+    z-index: 10;
+  }
   .sort-button {
     padding: 0.5rem 1rem;
     border-radius: 0.375rem;
@@ -100,18 +190,27 @@ Operational Dashboard{% endblock %} {% block additional_head %}
     flex-wrap: wrap;
     margin-bottom: 1rem;
   }
-  /* Pagination styles */
   .pagination-controls {
     background-color: #f9fafb;
     border: 1px solid #e5e7eb;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
   .pagination-controls select,
   .pagination-controls input {
     border: 1px solid #d1d5db;
     border-radius: 0.25rem;
+    padding: 0.25rem 0.5rem;
   }
   .pagination-controls button {
     transition: all 0.2s;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
   }
   .pagination-controls button:not(:disabled):hover {
     background-color: #e5e7eb;
@@ -120,117 +219,301 @@ Operational Dashboard{% endblock %} {% block additional_head %}
     opacity: 0.5;
     cursor: not-allowed;
   }
-  /* Make pagination controls responsive */
-  @media (max-width: 768px) {
-    .pagination-controls {
-      flex-direction: column;
-      gap: 1rem;
-    }
-    .pagination-controls > div {
-      width: 100%;
-      justify-content: center;
-    }
+  .axis-select {
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    background-color: white;
+    min-width: 150px;
+  }
+  .visualization-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .control-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #4b5563;
+  }
+  .data-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .data-card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #3b82f6;
+    margin: 0.5rem 0;
+  }
+  .data-card-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+  .data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .toggle-button {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+  }
+  .toggle-button:hover {
+    background-color: #f3f4f6;
+    color: #374151;
+  }
+  .toggle-button svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .expand-icon,
+  .collapse-icon {
+    display: inline-block;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .expand-icon::before {
+    content: "⤢";
+  }
+  .collapse-icon::before {
+    content: "⤡";
+  }
+  .expanded-chart {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.95);
+    z-index: 50;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .expanded-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .expanded-chart-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  .expanded-chart-body {
+    flex: 1;
+    min-height: 0;
+  }
+  .expanded-chart .chart-container {
+    height: 100%;
+    width: 100%;
+  }
+  .close-button {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s;
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+  .close-button:hover {
+    background-color: #f3f4f6;
+    color: #374151;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  .badge-success {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+  .badge-warning {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+  .badge-danger {
+    background-color: #fee2e2;
+    color: #b91c1c;
+  }
+  .badge-info {
+    background-color: #e0f2fe;
+    color: #0369a1;
+  }
+  .tooltip {
+    position: relative;
+    display: inline-block;
+  }
+  .tooltip .tooltip-text {
+    visibility: hidden;
+    width: 200px;
+    background-color: #374151;
+    color: white;
+    text-align: center;
+    border-radius: 6px;
+    padding: 0.5rem;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.75rem;
+  }
+  .tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
   }
 </style>
 {% endblock %} {% block content %}
-<h1 class="text-3xl font-bold text-gray-800 mb-8">Production Overview</h1>
+<h1 class="text-3xl font-bold text-gray-800 mb-4">Production Overview</h1>
 
-<!-- Daily Production Output and Distribution Charts -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-  <!-- Daily Production Output Chart -->
-  <div class="bg-white rounded-lg shadow-md p-6">
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">
-      Daily Production Output
-    </h2>
-    <div class="chart-containers">
-      {% if daily_output_chart %} {{ daily_output_chart|safe }} {% else %}
-      <p class="text-gray-500">No daily production data available</p>
-      {% endif %}
+<div class="dashboard-container">
+  <!-- Dashboard Tabs -->
+  <div class="tab-container">
+    <div class="tab active" data-tab="summary">Summary</div>
+    <div class="tab" data-tab="production-analysis">Production Analysis</div>
+    <div class="tab" data-tab="3d-visualization">3D Visualization</div>
+    <div class="tab" data-tab="data-table">Data Table</div>
+  </div>
+
+  <!-- Summary Tab -->
+  <div class="tab-content active" id="summary-tab">
+    <!-- Summary Cards -->
+    <div class="data-grid">
+      <div class="data-card">
+        <div class="data-card-label">Total Coils</div>
+        <div class="data-card-value" id="total-coils">-</div>
+        <div class="data-card-label">Production Units</div>
+      </div>
+      <div class="data-card">
+        <div class="data-card-label">Average Thickness</div>
+        <div class="data-card-value" id="avg-thickness">-</div>
+        <div class="data-card-label">mm</div>
+      </div>
+      <div class="data-card">
+        <div class="data-card-label">Average Width</div>
+        <div class="data-card-value" id="avg-width">-</div>
+        <div class="data-card-label">mm</div>
+      </div>
+      <div class="data-card">
+        <div class="data-card-label">Approval Rate</div>
+        <div class="data-card-value" id="approval-rate">-</div>
+        <div class="data-card-label">% Approved</div>
+      </div>
+    </div>
+
+    <!-- Summary Charts -->
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Daily Coil Production</div>
+          <div class="chart-card-actions">
+            <button class="toggle-button refresh-chart" data-chart="daily-coil">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </button>
+            <button class="toggle-button expand-chart" data-chart="daily-coil">
+              <span class="expand-icon"></span>
+            </button>
+          </div>
+        </div>
+        <div class="chart-card-body">
+          <div class="loading-indicator" id="daily-coil-loading">
+            <div class="spinner"></div>
+          </div>
+          <div class="chart-container" id="daily-coil-chart"></div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Coil Product Distribution</div>
+          <div class="chart-card-actions">
+            <button
+              class="toggle-button refresh-chart"
+              data-chart="coil-distribution"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </button>
+            <button
+              class="toggle-button expand-chart"
+              data-chart="coil-distribution"
+            >
+              <span class="expand-icon"></span>
+            </button>
+          </div>
+        </div>
+        <div class="chart-card-body">
+          <div class="loading-indicator" id="coil-distribution-loading">
+            <div class="spinner"></div>
+          </div>
+          <div class="chart-container" id="coil-distribution-chart"></div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Production Distribution Chart -->
-  <div class="bg-white rounded-lg shadow-md p-6">
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">
-      Production Distribution
-    </h2>
-    <div class="chart-containers">
-      {% if distribution_chart %} {{ distribution_chart|safe }} {% else %}
-      <p class="text-gray-500">No distribution data available</p>
-      {% endif %}
-    </div>
-  </div>
-</div>
-
-<!-- Daily Coil Production Chart with its own filters -->
-<div class="bg-white rounded-lg shadow-md p-6 mb-8">
-  <h2 class="text-xl font-semibold text-gray-700 mb-4">
-    Daily Coil Production
-  </h2>
-
-  <!-- Daily Coil Production Filters -->
-  <div class="filter-container">
-    <div class="filter-group">
-      <div class="filter-item">
-        <label class="filter-label">From Date</label>
-        <input
-          type="date"
-          id="daily-from-date"
-          class="filter-input"
-          placeholder="Select date"
-        />
-      </div>
-      <div class="filter-item">
-        <label class="filter-label">To Date</label>
-        <input
-          type="date"
-          id="daily-to-date"
-          class="filter-input"
-          placeholder="Select date"
-        />
-      </div>
-      <div class="filter-item mt-auto">
-        <button
-          id="apply-daily-filters"
-          class="filter-button filter-button-primary"
-        >
-          Apply Filters
-        </button>
-      </div>
-      <div class="filter-item mt-auto">
-        <button
-          id="export-daily-data"
-          class="filter-button filter-button-secondary"
-        >
-          Export
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <div class="chart-containers">
-    {% if monthly_production_chart %} {{ monthly_production_chart|safe }} {%
-    else %}
-    <p class="text-gray-500">No daily production data available</p>
-    {% endif %}
-  </div>
-</div>
-
-<div class="grid grid-cols-1 gap-8">
-  <!-- Coil Comparison Chart -->
-  <div class="bg-white rounded-lg shadow-md p-6">
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">
-      Coil Production Analysis
-    </h2>
-
-    <!-- Chart Filters -->
+  <!-- Production Analysis Tab -->
+  <div class="tab-content" id="production-analysis-tab">
+    <!-- Filter Controls -->
     <div class="filter-container">
       <div class="filter-group">
         <div class="filter-item">
           <label class="filter-label">From Date</label>
           <input
             type="date"
-            id="chart-from-date"
+            id="analysis-from-date"
             class="filter-input"
             placeholder="Select date"
           />
@@ -239,14 +522,21 @@ Operational Dashboard{% endblock %} {% block additional_head %}
           <label class="filter-label">To Date</label>
           <input
             type="date"
-            id="chart-to-date"
+            id="analysis-to-date"
             class="filter-input"
             placeholder="Select date"
           />
         </div>
+        <div class="filter-item">
+          <label class="filter-label">Product</label>
+          <select id="analysis-product" class="filter-input">
+            <option value="">All Products</option>
+            <!-- Products will be populated dynamically -->
+          </select>
+        </div>
         <div class="filter-item mt-auto">
           <button
-            id="apply-chart-filters"
+            id="apply-analysis-filters"
             class="filter-button filter-button-primary"
           >
             Apply Filters
@@ -254,7 +544,15 @@ Operational Dashboard{% endblock %} {% block additional_head %}
         </div>
         <div class="filter-item mt-auto">
           <button
-            id="export-chart-data"
+            id="reset-analysis-filters"
+            class="filter-button filter-button-secondary"
+          >
+            Reset Filters
+          </button>
+        </div>
+        <div class="filter-item mt-auto">
+          <button
+            id="export-analysis-data"
             class="filter-button filter-button-secondary"
           >
             Export
@@ -263,19 +561,215 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       </div>
     </div>
 
-    <div class="chart-container">
-      {% if coil_chart %} {{ coil_chart|safe }} {% else %}
-      <p class="text-gray-500">No coil comparison data available</p>
-      {% endif %}
+    <!-- Analysis Charts -->
+    <div class="chart-card mb-6">
+      <div class="chart-card-header">
+        <div class="chart-card-title">Coil Production Analysis</div>
+        <div class="chart-card-actions">
+          <button
+            class="toggle-button refresh-chart"
+            data-chart="coil-analysis"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </button>
+          <button class="toggle-button expand-chart" data-chart="coil-analysis">
+            <span class="expand-icon"></span>
+          </button>
+        </div>
+      </div>
+      <div class="chart-card-body" style="height: 500px">
+        <div
+          class="loading-indicator"
+          id="coil-analysis-loading"
+          style="display: none"
+        >
+          <div class="spinner"></div>
+        </div>
+        <div
+          class="chart-container"
+          id="coil-analysis-chart"
+          style="height: 100%"
+        >
+          <div
+            class="flex h-full items-center justify-center text-gray-500"
+            id="analysis-default-message"
+          >
+            Please apply filters to view the analysis chart.
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Coil Production Table -->
-  <div class="bg-white rounded-lg shadow-md p-6">
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">
-      Coil Production Details
-    </h2>
+  <!-- 3D Visualization Tab -->
+  <div class="tab-content" id="3d-visualization-tab">
+    <div class="filter-container">
+      <div class="visualization-controls">
+        <div class="filter-item">
+          <label class="filter-label">From Date</label>
+          <input
+            type="date"
+            id="viz-from-date"
+            class="filter-input"
+            placeholder="Select date"
+          />
+        </div>
+        <div class="filter-item">
+          <label class="filter-label">To Date</label>
+          <input
+            type="date"
+            id="viz-to-date"
+            class="filter-input"
+            placeholder="Select date"
+          />
+        </div>
+        <div class="control-group">
+          <label class="control-label" for="x-axis">X-Axis Parameter:</label>
+          <select id="x-axis" class="axis-select">
+            <option value="finalThk">Final Thickness</option>
+            <option value="planThickness">Planned Thickness</option>
+            <option value="finalWidth">Final Width</option>
+            <option value="planWidth">Planned Width</option>
+            <option value="finalWeight">Final Weight</option>
+            <option value="yieldStrength">Yield Strength</option>
+            <option value="elongation">Elongation</option>
+            <option value="hardness">Hardness</option>
+            <option value="age">Age</option>
+          </select>
+        </div>
 
+        <div class="control-group">
+          <label class="control-label" for="y-axis">Y-Axis Parameter:</label>
+          <select id="y-axis" class="axis-select">
+            <option value="finalWidth">Final Width</option>
+            <option value="finalThk">Final Thickness</option>
+            <option value="planThickness">Planned Thickness</option>
+            <option value="planWidth">Planned Width</option>
+            <option value="finalWeight">Final Weight</option>
+            <option value="yieldStrength">Yield Strength</option>
+            <option value="elongation">Elongation</option>
+            <option value="hardness">Hardness</option>
+            <option value="age">Age</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="z-axis">Z-Axis Parameter:</label>
+          <select id="z-axis" class="axis-select">
+            <option value="finalWeight">Final Weight</option>
+            <option value="finalThk">Final Thickness</option>
+            <option value="planThickness">Planned Thickness</option>
+            <option value="finalWidth">Final Width</option>
+            <option value="planWidth">Planned Width</option>
+            <option value="yieldStrength">Yield Strength</option>
+            <option value="elongation">Elongation</option>
+            <option value="hardness">Hardness</option>
+            <option value="age">Age</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="color-by">Color By:</label>
+          <select id="color-by" class="axis-select">
+            <option value="product">Product</option>
+            <option value="finalStatus">Final Status</option>
+            <option value="material">Material</option>
+            <option value="shift">Shift</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="visualization-type"
+            >Visualization Type:</label
+          >
+          <select id="visualization-type" class="axis-select">
+            <option value="scatter">3D Scatter</option>
+            <option value="surface">3D Surface</option>
+            <option value="mesh">3D Mesh</option>
+          </select>
+        </div>
+
+        <div class="control-group mt-auto">
+          <button
+            id="update-3d-visualization"
+            class="filter-button filter-button-primary"
+          >
+            Update Visualization
+          </button>
+        </div>
+
+        <div class="control-group mt-auto">
+          <button
+            id="export-3d-visualization"
+            class="filter-button filter-button-secondary"
+          >
+            Export
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">3D Parameter Visualization</div>
+        <div class="chart-card-actions">
+          <div class="tooltip">
+            <button class="toggle-button" id="3d-help">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </button>
+            <span class="tooltip-text"
+              >The visualization shows all available data points by default. Use
+              the date range filters to limit the data if needed for better
+              performance.</span
+            >
+          </div>
+          <button
+            class="toggle-button expand-chart"
+            data-chart="3d-visualization"
+          >
+            <span class="expand-icon"></span>
+          </button>
+        </div>
+      </div>
+      <div class="chart-card-body" style="height: 600px">
+        <div class="loading-indicator" id="visualization-3d-loading">
+          <div class="spinner"></div>
+        </div>
+        <div
+          class="chart-container"
+          id="visualization-3d"
+          style="height: 100%"
+        ></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Table Tab -->
+  <div class="tab-content" id="data-table-tab">
     <!-- Table Filters -->
     <div class="filter-container">
       <div class="filter-group">
@@ -287,14 +781,6 @@ Operational Dashboard{% endblock %} {% block additional_head %}
             class="filter-input"
             placeholder="Search by Serial No"
           />
-        </div>
-        <div class="filter-item mt-auto">
-          <button
-            id="search-serial-no"
-            class="filter-button filter-button-primary"
-          >
-            Search Serial No
-          </button>
         </div>
         <div class="filter-item">
           <label class="filter-label">From Date</label>
@@ -314,12 +800,36 @@ Operational Dashboard{% endblock %} {% block additional_head %}
             placeholder="Select date"
           />
         </div>
+        <div class="filter-item">
+          <label class="filter-label">Product</label>
+          <select id="table-product" class="filter-input">
+            <option value="">All Products</option>
+            <!-- Products will be populated dynamically -->
+          </select>
+        </div>
+        <div class="filter-item">
+          <label class="filter-label">Status</label>
+          <select id="table-status" class="filter-input">
+            <option value="">All Statuses</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Pending">Pending</option>
+          </select>
+        </div>
         <div class="filter-item mt-auto">
           <button
             id="apply-table-filters"
             class="filter-button filter-button-primary"
           >
-            Apply Date Filters
+            Apply Filters
+          </button>
+        </div>
+        <div class="filter-item mt-auto">
+          <button
+            id="reset-table-filters"
+            class="filter-button filter-button-secondary"
+          >
+            Reset Filters
           </button>
         </div>
         <div class="filter-item mt-auto">
@@ -339,7 +849,6 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       <button id="sort-sl-no" class="sort-button active" data-sort="slNo">
         Serial Number
       </button>
-      <!-- Clearance Date sorting removed -->
       <button id="sort-weight" class="sort-button" data-sort="finalWeight">
         Weight
       </button>
@@ -361,415 +870,35 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       </button>
     </div>
 
-    <div class="table-container">
+    <!-- Column Selector -->
+    <div class="filter-container mb-4">
+      <div class="font-medium text-gray-700 mb-2">Show/Hide Columns:</div>
+      <div class="flex flex-wrap gap-2" id="column-toggles">
+        <!-- Column toggles will be populated dynamically -->
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-container mb-4">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50 sticky-header">
-          <tr>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              SL No
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Product
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Serial No
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Mother Serial No
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Plan Thickness
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Final Thk
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Plan Width
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Final Width
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Plan TDC
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Final Tdc
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Ip Idm
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Order Customer
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Actual Customer
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Order Path
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Actual Path
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Order Weight Min-Max
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Final Weight
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Order Yield Strength
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Yield Strength
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Order Elongation
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Elongation
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Order Hardness
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Hardness
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Liner Marking
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Sleeve Type
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Lab Result
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Lab Test Remark
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Surface Result
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Surface Remark
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Final Status
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Major Defect
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Def Allocation
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Rework Unit
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Suggestions
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Prev Unit
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              NCO Flag
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Deversion Cat
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Clearance Date
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Age
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Material
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Oil Type
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Oiler Usage
-            </th>
-            <th
-              scope="col"
-              class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              Shift
-            </th>
+          <tr id="table-header">
+            <!-- Table headers will be populated dynamically -->
           </tr>
         </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          {% for item in coil_data %}
-          <tr class="hover:bg-gray-50">
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.slNo }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.product }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.serialNo }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.motherSerialNo }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.planThickness }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.finalThk }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.planWidth }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.finalWidth }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.planTdc }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.finalTdc }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.ipIdm }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.orderCustomer }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.actualCustomer }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.orderPath }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.actualPath }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.orderWeightMinMax }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.finalWeight }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.orderYieldStrength }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.yieldStrength }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.orderElongation }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.elongation }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.orderHardness }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.hardness }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.linerMarking }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.sleeveType }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.labResult }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.labTestRemark }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.surfaceResult }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.surfaceRemark }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm">
-              <span
-                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {% if item.finalStatus == 'Approved' %}bg-green-100 text-green-800 {% elif item.finalStatus == 'Rejected' %}bg-red-100 text-red-800 {% else %}bg-yellow-100 text-yellow-800{% endif %}"
-              >
-                {{ item.finalStatus }}
-              </span>
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.majorDefect }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.defAllocation }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.reworkUnit }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.suggestions }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.prevUnit }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.ncoFlag }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.deversionCat }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.clearanceDate }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.age }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.material }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.oilType }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.oilerUsage }}
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-              {{ item.shift }}
+        <tbody class="bg-white divide-y divide-gray-200" id="table-body">
+          <!-- Table rows will be populated dynamically -->
+          <tr>
+            <td colspan="100%" class="px-3 py-4 text-center text-gray-500">
+              Loading data...
             </td>
           </tr>
-          {% endfor %}
         </tbody>
       </table>
     </div>
+
     <!-- Pagination controls -->
-    <div
-      class="pagination-controls flex justify-between items-center mt-4 bg-gray-50 p-3 rounded-md"
-    >
+    <div class="pagination-controls mb-6">
       <div class="flex items-center space-x-2">
         <span class="text-sm text-gray-600">Show</span>
         <select id="items-per-page" class="text-sm border rounded p-1">
@@ -811,166 +940,312 @@ Operational Dashboard{% endblock %} {% block additional_head %}
     </div>
   </div>
 </div>
+
+<!-- Expanded Chart Modal -->
+<div id="expanded-chart-modal" style="display: none" class="expanded-chart">
+  <div class="expanded-chart-header">
+    <div class="expanded-chart-title" id="expanded-chart-title">
+      Chart Title
+    </div>
+    <button class="close-button" id="close-expanded-chart">×</button>
+  </div>
+  <div class="expanded-chart-body">
+    <div class="chart-container" id="expanded-chart-container"></div>
+  </div>
+</div>
 {% endblock %} {% block scripts %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
   $(document).ready(function () {
+    // Tab switching
+    $(".tab").on("click", function () {
+      const tabId = $(this).data("tab");
+
+      // Update active tab
+      $(".tab").removeClass("active");
+      $(this).addClass("active");
+
+      // Show corresponding content
+      $(".tab-content").removeClass("active");
+      $(`#${tabId}-tab`).addClass("active");
+
+      // Load data for the selected tab
+      if (tabId === "summary") {
+        loadSummaryData();
+      } else if (tabId === "production-analysis") {
+        // Don't auto-load analysis data, wait for user to apply filters
+        // Just show the filter controls
+      } else if (tabId === "3d-visualization") {
+        // Auto-load 3D visualization with default 100 data points
+        update3DVisualization();
+      } else if (tabId === "data-table") {
+        initializeDataTable();
+      }
+    });
+
     // Pagination variables
     let currentPage = 1;
     let itemsPerPage = 10;
     let totalPages = 1;
     let paginatedData = [];
+    let tableData = [];
+    let allColumns = [];
+    let visibleColumns = [];
+    let productOptions = [];
+    let statusOptions = [];
 
-    // Initial load of all data
-    loadData();
+    // Global variables for sorting
+    let currentSortParam = "slNo";
+    let currentSortDirection = "asc";
+    let sortingApplied = false;
 
-    // Chart filter button click handler
-    $("#apply-chart-filters").on("click", function () {
-      loadCoilChart();
-    });
+    // Cache for summary data
+    let summaryDataCache = null;
+    let summaryChartsLoaded = false;
 
-    // Daily production chart filter button click handler
-    $("#apply-daily-filters").on("click", function () {
-      loadDailyProductionChart();
-    });
+    // Initialize the dashboard
+    initializeDashboard();
 
-    // Table filter button click handler
-    $("#apply-table-filters").on("click", function () {
-      loadTableData();
-    });
+    function initializeDashboard() {
+      // Load initial summary data
+      loadSummaryData();
 
-    // Serial number search button click handler
-    $("#search-serial-no").on("click", function () {
-      loadTableData();
-    });
+      // Fetch product and status options for filters
+      fetchFilterOptions();
 
-    // Serial number input enter key handler
-    $("#table-serial-no").on("keypress", function (e) {
-      if (e.which === 13) {
-        loadTableData();
-      }
-    });
-
-    // Export buttons click handlers
-    $("#export-chart-data").on("click", function () {
-      exportData("chart");
-    });
-
-    $("#export-daily-data").on("click", function () {
-      exportData("daily");
-    });
-
-    $("#export-table-data").on("click", function () {
-      exportData("table");
-    });
-
-    // Sort buttons click handlers
-    $(".sort-button").on("click", function () {
-      // Remove active class from all buttons
-      $(".sort-button").removeClass("active");
-      // Add active class to clicked button
-      $(this).addClass("active");
-
-      // Get sort parameter
-      const sortParam = $(this).data("sort");
-      sortTableBy(sortParam);
-    });
-
-    // Pagination handlers
-    $("#items-per-page").on("change", function () {
-      itemsPerPage = parseInt($(this).val());
-      currentPage = 1; // Reset to first page when changing items per page
-      applyPagination();
-    });
-
-    $("#prev-page").on("click", function () {
-      if (currentPage > 1) {
-        currentPage--;
-        applyPagination();
-      }
-    });
-
-    $("#next-page").on("click", function () {
-      if (currentPage < totalPages) {
-        currentPage++;
-        applyPagination();
-      }
-    });
-
-    $("#current-page").on("change", function () {
-      const newPage = parseInt($(this).val());
-      if (newPage >= 1 && newPage <= totalPages) {
-        currentPage = newPage;
-        applyPagination();
-      }
-    });
-
-    $("#current-page").on("change", function () {
-      const newPage = parseInt($(this).val());
-      if (newPage >= 1 && newPage <= totalPages) {
-        currentPage = newPage;
-        applyPagination();
-      } else {
-        $(this).val(currentPage); // Reset to valid value
-      }
-    });
-
-    function loadData() {
-      loadCoilChart();
-      loadDailyProductionChart();
-      loadTableData();
+      // Set up event handlers
+      setupEventHandlers();
     }
 
-    function loadCoilChart() {
-      const fromDate = $("#chart-from-date").val();
-      const toDate = $("#chart-to-date").val();
+    function loadSummaryData() {
+      // If we already have cached data, use it
+      if (summaryDataCache && summaryChartsLoaded) {
+        updateSummaryCards(summaryDataCache);
+        return;
+      }
+
+      // Show loading indicators
+      $("#daily-coil-loading, #coil-distribution-loading").show();
+
+      // Load summary metrics
+      $.ajax({
+        url: "/production_overview/summary_metrics",
+        method: "GET",
+        success: function (response) {
+          // Cache the response
+          summaryDataCache = response;
+          updateSummaryCards(response);
+        },
+        error: function (xhr, status, error) {
+          console.error("Error loading summary metrics:", error);
+        },
+      });
+
+      // Only load charts if they haven't been loaded yet
+      if (!summaryChartsLoaded) {
+        // Load summary charts
+        loadChart("daily-coil", "/production_overview/daily_production_chart");
+        loadChart(
+          "coil-distribution",
+          "/production_overview/coil_distribution_chart",
+          {},
+          function () {
+            summaryChartsLoaded = true;
+          }
+        );
+      } else {
+        // Hide loading indicators if charts are already loaded
+        $("#daily-coil-loading, #coil-distribution-loading").hide();
+      }
+    }
+
+    function updateSummaryCards(data) {
+      $("#total-coils").text(data.totalCoils || "-");
+      $("#avg-thickness").text(
+        data.avgThickness ? data.avgThickness.toFixed(2) : "-"
+      );
+      $("#avg-width").text(data.avgWidth ? data.avgWidth.toFixed(0) : "-");
+      $("#approval-rate").text(
+        data.approvalRate ? data.approvalRate.toFixed(1) + "%" : "-"
+      );
+    }
+
+    function loadChart(chartId, endpoint, params = {}, callback) {
+      $(`#${chartId}-loading`).show();
 
       $.ajax({
-        url: "/production_overview/chart_data",
+        url: endpoint,
         method: "GET",
-        data: {
-          chart_type: "coil",
-          from_date: fromDate,
-          to_date: toDate,
-        },
+        data: params,
         success: function (response) {
-          if (response.coil_chart) {
-            $(".chart-container").html(response.coil_chart);
+          if (response[`${chartId.replace("-", "_")}_chart`]) {
+            $(`#${chartId}-chart`).html(
+              response[`${chartId.replace("-", "_")}_chart`]
+            );
+          } else if (response.chart) {
+            $(`#${chartId}-chart`).html(response.chart);
           }
-          if (response.daily_output_chart) {
-            $(".chart-containers").first().html(response.daily_output_chart);
-          }
-          if (response.distribution_chart) {
-            $(".chart-containers").eq(1).html(response.distribution_chart);
+          $(`#${chartId}-loading`).hide();
+
+          if (typeof callback === "function") {
+            callback();
           }
         },
         error: function (xhr, status, error) {
-          console.error("Error loading chart data:", error);
-          alert("Error loading chart data. Please try again.");
+          console.error(`Error loading ${chartId} chart:`, error);
+          $(`#${chartId}-loading`).hide();
+          $(`#${chartId}-chart`).html(
+            `<div class="flex h-full items-center justify-center text-gray-500">Error loading chart. Please try again.</div>`
+          );
+
+          if (typeof callback === "function") {
+            callback(error);
+          }
         },
       });
     }
 
-    function loadDailyProductionChart() {
-      const fromDate = $("#daily-from-date").val();
-      const toDate = $("#daily-to-date").val();
+    function loadAnalysisData() {
+      const fromDate = $("#analysis-from-date").val();
+      const toDate = $("#analysis-to-date").val();
+      const product = $("#analysis-product").val();
+
+      // Check if any filters are applied
+      if (!fromDate && !toDate && !product) {
+        // No filters applied, show default message and clear chart
+        $("#coil-analysis-chart").html(
+          '<div class="flex h-full items-center justify-center text-gray-500">Please apply filters to view the analysis chart.</div>'
+        );
+        $("#coil-analysis-loading").hide();
+        return;
+      }
+
+      $("#coil-analysis-loading").show();
+      $("#analysis-default-message").hide();
+
+      loadChart("coil-analysis", "/production_overview/coil_analysis_chart", {
+        from_date: fromDate,
+        to_date: toDate,
+        product: product,
+      });
+    }
+
+    function update3DVisualization() {
+      const xAxis = $("#x-axis").val();
+      const yAxis = $("#y-axis").val();
+      const zAxis = $("#z-axis").val();
+      const colorBy = $("#color-by").val();
+      const visualizationType = $("#visualization-type").val();
+      const fromDate = $("#viz-from-date").val();
+      const toDate = $("#viz-to-date").val();
+
+      $("#visualization-3d-loading").show();
 
       $.ajax({
-        url: "/production_overview/daily_chart_data",
+        url: "/production_overview/visualization_3d",
         method: "GET",
         data: {
+          x_axis: xAxis,
+          y_axis: yAxis,
+          z_axis: zAxis,
+          color_by: colorBy,
+          visualization_type: visualizationType,
           from_date: fromDate,
           to_date: toDate,
         },
         success: function (response) {
-          if (response.daily_production_chart) {
-            $(".chart-containers").eq(2).html(response.daily_production_chart);
+          if (response.visualization_3d) {
+            $("#visualization-3d").html(response.visualization_3d);
           }
+          $("#visualization-3d-loading").hide();
         },
         error: function (xhr, status, error) {
-          console.error("Error loading daily production chart data:", error);
-          alert("Error loading daily production chart data. Please try again.");
+          console.error("Error loading 3D visualization:", error);
+          $("#visualization-3d-loading").hide();
+          $("#visualization-3d").html(
+            `<div class="flex h-full items-center justify-center text-gray-500">Error loading visualization. Please try again.</div>`
+          );
         },
+      });
+    }
+
+    function initializeDataTable() {
+      // Only initialize once
+      if (allColumns.length === 0) {
+        // Fetch column definitions
+        $.ajax({
+          url: "/production_overview/table_columns",
+          method: "GET",
+          success: function (response) {
+            allColumns = response.columns;
+            visibleColumns =
+              response.defaultVisible || allColumns.map((col) => col.field);
+
+            // Generate column toggles
+            generateColumnToggles();
+
+            // Generate table header
+            generateTableHeader();
+
+            // Load initial data
+            loadTableData();
+          },
+          error: function (xhr, status, error) {
+            console.error("Error loading table columns:", error);
+          },
+        });
+      } else {
+        // Just reload the data
+        loadTableData();
+      }
+    }
+
+    function generateColumnToggles() {
+      const container = $("#column-toggles");
+      container.empty();
+
+      allColumns.forEach((column) => {
+        const isChecked = visibleColumns.includes(column.field);
+        const toggle = `
+        <label class="inline-flex items-center">
+          <input type="checkbox" class="column-toggle" data-field="${
+            column.field
+          }" ${isChecked ? "checked" : ""}>
+          <span class="ml-2 text-sm text-gray-700">${column.title}</span>
+        </label>
+      `;
+        container.append(toggle);
+      });
+
+      // Add event listener for column toggles
+      $(".column-toggle").on("change", function () {
+        const field = $(this).data("field");
+        if ($(this).is(":checked")) {
+          if (!visibleColumns.includes(field)) {
+            visibleColumns.push(field);
+          }
+        } else {
+          visibleColumns = visibleColumns.filter((col) => col !== field);
+        }
+
+        // Regenerate table header and redraw table immediately
+        generateTableHeader();
+        updateTableWithData(tableData);
+      });
+    }
+
+    function generateTableHeader() {
+      const header = $("#table-header");
+      header.empty();
+
+      allColumns.forEach((column) => {
+        if (visibleColumns.includes(column.field)) {
+          header.append(`
+          <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-field="${column.field}">
+            ${column.title}
+          </th>
+        `);
+        }
       });
     }
 
@@ -978,6 +1253,13 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       const serialNo = $("#table-serial-no").val();
       const fromDate = $("#table-from-date").val();
       const toDate = $("#table-to-date").val();
+      const product = $("#table-product").val();
+      const status = $("#table-status").val();
+
+      // Show loading indicator
+      $("#table-body").html(
+        '<tr><td colspan="100%" class="px-3 py-4 text-center text-gray-500">Loading data...</td></tr>'
+      );
 
       $.ajax({
         url: "/production_overview/table_data",
@@ -986,97 +1268,84 @@ Operational Dashboard{% endblock %} {% block additional_head %}
           serial_no: serialNo,
           from_date: fromDate,
           to_date: toDate,
+          product: product,
+          status: status,
+          page: currentPage,
+          limit: itemsPerPage,
+          sort_by: currentSortParam,
+          sort_direction: currentSortDirection,
         },
         success: function (response) {
-          tableData = response.coil_data;
-          // Apply the current active sort
-          const activeSortParam = $(".sort-button.active").data("sort");
-          sortTableBy(activeSortParam);
+          tableData = response.data;
+          totalPages = Math.ceil(response.total / itemsPerPage);
+
+          // Update pagination info
+          updatePaginationControls(
+            (currentPage - 1) * itemsPerPage + 1,
+            Math.min(currentPage * itemsPerPage, response.total),
+            response.total
+          );
+
+          // Update table with data
+          updateTableWithData(tableData);
         },
         error: function (xhr, status, error) {
           console.error("Error loading table data:", error);
-          alert("Error loading table data. Please try again.");
+          $("#table-body").html(
+            '<tr><td colspan="100%" class="px-3 py-4 text-center text-red-500">Error loading data. Please try again.</td></tr>'
+          );
         },
       });
     }
 
-    // Global variable for table data
-    let tableData = [];
+    function updateTableWithData(data) {
+      const tbody = $("#table-body");
+      tbody.empty();
 
-    // Function to sort the table by a specific parameter
-    function sortTableBy(parameter, direction = "asc") {
-      if (!tableData || tableData.length === 0) return;
+      if (data && data.length > 0) {
+        data.forEach(function (item) {
+          const row = $('<tr class="hover:bg-gray-50"></tr>');
 
-      // Store current sort parameter and direction for export
-      currentSortParam = parameter;
-      currentSortDirection = direction;
+          allColumns.forEach((column) => {
+            if (visibleColumns.includes(column.field)) {
+              let cellContent = "";
 
-      const sortedData = [...tableData].sort((a, b) => {
-        let aValue = a[parameter];
-        let bValue = b[parameter];
+              // Format cell content based on column type
+              if (column.field === "finalStatus") {
+                const statusClass =
+                  item.finalStatus === "Approved"
+                    ? "badge-success"
+                    : item.finalStatus === "Rejected"
+                    ? "badge-danger"
+                    : "badge-warning";
+                cellContent = `<span class="badge ${statusClass}">${
+                  item[column.field] || ""
+                }</span>`;
+              } else {
+                cellContent =
+                  item[column.field] !== undefined ? item[column.field] : "";
+              }
 
-        // Handle numeric values
-        if (!isNaN(parseFloat(aValue)) && !isNaN(parseFloat(bValue))) {
-          aValue = parseFloat(aValue);
-          bValue = parseFloat(bValue);
-          return direction === "asc" ? aValue - bValue : bValue - aValue;
-        }
-        // Handle string values (case-insensitive)
-        else if (typeof aValue === "string" && typeof bValue === "string") {
-          aValue = aValue.toLowerCase();
-          bValue = bValue.toLowerCase();
-          return direction === "asc"
-            ? aValue.localeCompare(bValue)
-            : bValue.localeCompare(aValue);
-        }
+              row.append(
+                `<td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${cellContent}</td>`
+              );
+            }
+          });
 
-        // Default comparison
-        return 0;
-      });
-
-      // Apply pagination to the sorted data
-      applyPagination(sortedData);
+          tbody.append(row);
+        });
+      } else {
+        tbody.append(
+          '<tr><td colspan="100%" class="px-3 py-4 text-center text-gray-500">No data available</td></tr>'
+        );
+      }
     }
 
-    // Function to apply pagination to the data
-    function applyPagination(data = null) {
-      // If data is provided, use it; otherwise, use the current tableData
-      const dataToUse = data || tableData;
-
-      if (!dataToUse || dataToUse.length === 0) {
-        updatePaginationControls(0, 0, 0);
-        updateTableWithData([]);
-        return;
-      }
-
-      // Calculate total pages
-      totalPages = Math.ceil(dataToUse.length / itemsPerPage);
-
-      // Ensure current page is valid
-      if (currentPage > totalPages) {
-        currentPage = totalPages;
-      }
-
-      // Calculate start and end indices for the current page
-      const startIndex = (currentPage - 1) * itemsPerPage;
-      const endIndex = Math.min(startIndex + itemsPerPage, dataToUse.length);
-
-      // Get the data for the current page
-      paginatedData = dataToUse.slice(startIndex, endIndex);
-
-      // Update the table with the paginated data
-      updateTableWithData(paginatedData);
-
-      // Update pagination controls
-      updatePaginationControls(startIndex, endIndex, dataToUse.length);
-    }
-
-    // Function to update pagination controls
-    function updatePaginationControls(startIndex, endIndex, totalItems) {
+    function updatePaginationControls(start, end, total) {
       // Update pagination info text
-      if (totalItems > 0) {
+      if (total > 0) {
         $("#pagination-info").text(
-          `Showing ${startIndex + 1} to ${endIndex} of ${totalItems} entries`
+          `Showing ${start} to ${end} of ${total} entries`
         );
       } else {
         $("#pagination-info").text("Showing 0 to 0 of 0 entries");
@@ -1103,249 +1372,253 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       }
     }
 
-    // Add global variables to track current sort state
-    let currentSortParam = "slNo";
-    let currentSortDirection = "asc";
-    // Add a new flag to track if sorting has been explicitly applied
-    // Add this after the currentSortParam and currentSortDirection variables
-    let sortingApplied = false;
+    function fetchFilterOptions() {
+      $.ajax({
+        url: "/production_overview/filter_options",
+        method: "GET",
+        success: function (response) {
+          productOptions = response.products || [];
+          statusOptions = response.statuses || [];
 
-    // Update the sort buttons click handler to toggle direction
-    $(".sort-button").on("click", function () {
-      // Remove active class from all buttons
-      $(".sort-button").removeClass("active");
-      // Add active class to clicked button
-      $(this).addClass("active");
+          // Populate product dropdowns
+          const productSelects = $("#analysis-product, #table-product");
+          productSelects.empty();
+          productSelects.append('<option value="">All Products</option>');
 
-      // Get sort parameter
-      const sortParam = $(this).data("sort");
+          productOptions.forEach((product) => {
+            productSelects.append(
+              `<option value="${product}">${product}</option>`
+            );
+          });
 
-      // Toggle direction if clicking the same column
-      if (sortParam === currentSortParam) {
-        currentSortDirection = currentSortDirection === "asc" ? "desc" : "asc";
-      } else {
-        currentSortDirection = "asc";
-      }
+          // Populate status dropdown
+          const statusSelect = $("#table-status");
+          statusSelect.empty();
+          statusSelect.append('<option value="">All Statuses</option>');
 
-      // Set the flag to indicate sorting has been explicitly applied
-      sortingApplied = true;
+          statusOptions.forEach((status) => {
+            statusSelect.append(`<option value="${status}">${status}</option>`);
+          });
+        },
+        error: function (xhr, status, error) {
+          console.error("Error loading filter options:", error);
+        },
+      });
+    }
 
-      sortTableBy(sortParam, currentSortDirection);
-    });
+    function setupEventHandlers() {
+      // Chart refresh buttons
+      $(".refresh-chart").on("click", function () {
+        const chartId = $(this).data("chart");
 
-    // Function to update the table with the provided data
-    function updateTableWithData(data) {
-      const tbody = $("tbody");
-      tbody.empty();
+        if (chartId === "daily-coil") {
+          loadChart(
+            "daily-coil",
+            "/production_overview/daily_production_chart"
+          );
+        } else if (chartId === "coil-distribution") {
+          loadChart(
+            "coil-distribution",
+            "/production_overview/coil_distribution_chart"
+          );
+        } else if (chartId === "coil-analysis") {
+          loadAnalysisData();
+        }
+      });
 
-      if (data && data.length > 0) {
-        data.forEach(function (item) {
-          const row = `
-            <tr class="hover:bg-gray-50">
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.slNo || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.product || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.serialNo || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.motherSerialNo || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.planThickness || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.finalThk || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.planWidth || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.finalWidth || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.planTdc || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.finalTdc || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.ipIdm || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.orderCustomer || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.actualCustomer || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.orderPath || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.actualPath || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.orderWeightMinMax || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.finalWeight || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.orderYieldStrength || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.yieldStrength || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.orderElongation || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.elongation || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.orderHardness || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.hardness || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.linerMarking || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.sleeveType || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.labResult || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.labTestRemark || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.surfaceResult || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.surfaceRemark || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm">
-                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                  item.finalStatus === "Approved"
-                    ? "bg-green-100 text-green-800"
-                    : item.finalStatus === "Rejected"
-                    ? "bg-red-100 text-red-800"
-                    : "bg-yellow-100 text-yellow-800"
-                }">${item.finalStatus || ""}</span>
-              </td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.majorDefect || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.defAllocation || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.reworkUnit || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.suggestions || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.prevUnit || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.ncoFlag || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.deversionCat || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.clearanceDate || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.age || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.material || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.oilType || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.oilerUsage || ""
-              }</td>
-              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${
-                item.shift || ""
-              }</td>
-            </tr>
-          `;
-          tbody.append(row);
-        });
-      } else {
-        tbody.append(
-          '<tr><td colspan="40" class="px-3 py-4 text-center text-gray-500">No data available</td></tr>'
+      // Chart expand buttons
+      $(".expand-chart").on("click", function () {
+        const chartId = $(this).data("chart");
+        const chartTitle = $(this)
+          .closest(".chart-card")
+          .find(".chart-card-title")
+          .text();
+        const chartHtml = $(`#${chartId}-chart`).html();
+
+        $("#expanded-chart-title").text(chartTitle);
+        $("#expanded-chart-container").html(chartHtml);
+        $("#expanded-chart-modal").show();
+      });
+
+      // Close expanded chart
+      $("#close-expanded-chart").on("click", function () {
+        $("#expanded-chart-modal").hide();
+      });
+
+      // Analysis filters
+      $("#apply-analysis-filters").on("click", function () {
+        loadAnalysisData();
+      });
+
+      // Reset analysis filters
+      $("#reset-analysis-filters").on("click", function () {
+        $("#analysis-from-date").val("");
+        $("#analysis-to-date").val("");
+        $("#analysis-product").val("");
+
+        // Reset the chart to default state
+        $("#coil-analysis-chart").html(
+          '<div class="flex h-full items-center justify-center text-gray-500">Please apply filters to view the analysis chart.</div>'
         );
-      }
+      });
+
+      // 3D visualization update
+      $("#update-3d-visualization").on("click", function () {
+        update3DVisualization();
+      });
+
+      // Table filters
+      $("#apply-table-filters").on("click", function () {
+        currentPage = 1;
+        loadTableData();
+      });
+
+      // Reset table filters
+      $("#reset-table-filters").on("click", function () {
+        $("#table-serial-no").val("");
+        $("#table-from-date").val("");
+        $("#table-to-date").val("");
+        $("#table-product").val("");
+        $("#table-status").val("");
+        currentPage = 1;
+        loadTableData();
+      });
+
+      // Sort buttons
+      $(".sort-button").on("click", function () {
+        // Remove active class from all buttons
+        $(".sort-button").removeClass("active");
+        // Add active class to clicked button
+        $(this).addClass("active");
+
+        // Get sort parameter
+        const sortParam = $(this).data("sort");
+
+        // Toggle direction if clicking the same column
+        if (sortParam === currentSortParam) {
+          currentSortDirection =
+            currentSortDirection === "asc" ? "desc" : "asc";
+        } else {
+          currentSortParam = sortParam;
+          currentSortDirection = "asc";
+        }
+
+        // Set the flag to indicate sorting has been explicitly applied
+        sortingApplied = true;
+
+        // Reload data with new sorting
+        loadTableData();
+      });
+
+      // Clear sorting
+      $("#clear-sorting").on("click", function () {
+        // Remove active class from all sort buttons
+        $(".sort-button").removeClass("active");
+
+        // Reset current sort parameters
+        currentSortParam = "slNo";
+        currentSortDirection = "asc";
+
+        // Set default sort button as active
+        $("#sort-sl-no").addClass("active");
+
+        // Reset the sorting applied flag
+        sortingApplied = false;
+
+        // Reload data with default sorting
+        loadTableData();
+      });
+
+      // Pagination handlers
+      $("#items-per-page").on("change", function () {
+        itemsPerPage = parseInt($(this).val());
+        currentPage = 1; // Reset to first page when changing items per page
+        loadTableData();
+      });
+
+      $("#prev-page").on("click", function () {
+        if (currentPage > 1) {
+          currentPage--;
+          loadTableData();
+        }
+      });
+
+      $("#next-page").on("click", function () {
+        if (currentPage < totalPages) {
+          currentPage++;
+          loadTableData();
+        }
+      });
+
+      $("#current-page").on("change", function () {
+        const newPage = parseInt($(this).val());
+        if (newPage >= 1 && newPage <= totalPages) {
+          currentPage = newPage;
+          loadTableData();
+        } else {
+          $(this).val(currentPage); // Reset to valid value
+        }
+      });
+
+      // Export buttons
+      $("#export-analysis-data").on("click", function () {
+        exportData("analysis");
+      });
+
+      $("#export-3d-visualization").on("click", function () {
+        exportData("3d");
+      });
+
+      $("#export-table-data").on("click", function () {
+        exportData("table");
+      });
     }
 
-    // Update the existing updateTable function to use the new pagination functionality
-    function updateTable(data) {
-      tableData = data;
-      // Apply the current active sort and pagination
-      const activeSortParam = $(".sort-button.active").data("sort");
-      sortTableBy(activeSortParam || "slNo");
-    }
-
-    // Update the export function to include sorting parameters
     function exportData(type) {
-      let fromDate, toDate, serialNo, url;
+      let url = "/export_data?type=" + type;
 
-      if (type === "chart") {
-        fromDate = $("#chart-from-date").val();
-        toDate = $("#chart-to-date").val();
-        url = `/export_data?type=${type}`;
-      } else if (type === "daily") {
-        fromDate = $("#daily-from-date").val();
-        toDate = $("#daily-to-date").val();
-        url = `/export_data?type=${type}`;
-      } else {
-        fromDate = $("#table-from-date").val();
-        toDate = $("#table-to-date").val();
-        serialNo = $("#table-serial-no").val();
-        url = `/export_data?type=${type}`;
+      if (type === "analysis") {
+        const fromDate = $("#analysis-from-date").val();
+        const toDate = $("#analysis-to-date").val();
+        const product = $("#analysis-product").val();
+
+        if (fromDate) url += `&from_date=${fromDate}`;
+        if (toDate) url += `&to_date=${toDate}`;
+        if (product) url += `&product=${product}`;
+      } else if (type === "3d") {
+        const xAxis = $("#x-axis").val();
+        const yAxis = $("#y-axis").val();
+        const zAxis = $("#z-axis").val();
+        const colorBy = $("#color-by").val();
+        const visualizationType = $("#visualization-type").val();
+        const fromDate = $("#viz-from-date").val();
+        const toDate = $("#viz-to-date").val();
+
+        url += `&x_axis=${xAxis}&y_axis=${yAxis}&z_axis=${zAxis}&color_by=${colorBy}&visualization_type=${visualizationType}`;
+
+        if (fromDate) url += `&from_date=${fromDate}`;
+        if (toDate) url += `&to_date=${toDate}`;
+      } else if (type === "table") {
+        const serialNo = $("#table-serial-no").val();
+        const fromDate = $("#table-from-date").val();
+        const toDate = $("#table-to-date").val();
+        const product = $("#table-product").val();
+        const status = $("#table-status").val();
+
+        if (serialNo) url += `&serial_no=${serialNo}`;
+        if (fromDate) url += `&from_date=${fromDate}`;
+        if (toDate) url += `&to_date=${toDate}`;
+        if (product) url += `&product=${product}`;
+        if (status) url += `&status=${status}`;
+
+        // Only add sorting parameters if sorting has been explicitly applied
+        if (sortingApplied) {
+          url += `&sort_by=${currentSortParam}&sort_direction=${currentSortDirection}`;
+        }
       }
 
-      if (fromDate) url += `&from_date=${fromDate}`;
-      if (toDate) url += `&to_date=${toDate}`;
-      if (serialNo && type === "table") url += `&serial_no=${serialNo}`;
-
-      // Only add sorting parameters if sorting has been explicitly applied
-      if (sortingApplied && type === "table") {
-        url += `&sort_by=${currentSortParam}&sort_direction=${currentSortDirection}`;
-      }
-
-      console.log("Export URL:", url);
       window.location.href = url;
     }
-
-    // Clear sorting button click handler
-    $("#clear-sorting").on("click", function () {
-      // Remove active class from all sort buttons
-      $(".sort-button").removeClass("active");
-
-      // Reset current sort parameters
-      currentSortParam = "slNo";
-      currentSortDirection = "asc";
-
-      // Set default sort button as active
-      $("#sort-sl-no").addClass("active");
-
-      // Reset the sorting applied flag
-      sortingApplied = false;
-
-      // Apply default sorting
-      sortTableBy(currentSortParam, currentSortDirection);
-    });
   });
 </script>
 {% endblock %}
