@@ -11,6 +11,7 @@ from equipment_performance import equipment_performance
 from quality_control import quality_control
 from customer_satisfaction import customer_satisfaction
 
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'no_secret_key_right_now'
 app.register_blueprint(production_overview)
@@ -55,7 +56,7 @@ def login():
         user = db.users.find_one({'email': request.form['email']})
         if user and bcrypt.check_password_hash(user['password'], request.form['password']):
             session['user_id'] = str(user['_id'])
-            flash('Logout successful', 'success')
+            flash('Login successful', 'success')
             return redirect(url_for('dashboard'))
         flash('Invalid email or password', 'error')
     return render_template('login.html')

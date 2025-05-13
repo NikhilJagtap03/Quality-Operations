@@ -138,6 +138,11 @@ Operational Dashboard{% endblock %} {% block additional_head %}
     cursor: pointer;
     transition: all 0.2s;
   }
+  .filter-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
   .filter-button-primary {
     background-color: #3b82f6;
     color: white;
@@ -165,30 +170,35 @@ Operational Dashboard{% endblock %} {% block additional_head %}
     background-color: #f9fafb;
     z-index: 10;
   }
-  .sort-button {
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    font-weight: 500;
+  .sortable-header {
     cursor: pointer;
-    transition: all 0.2s;
+    user-select: none;
+    position: relative;
+    padding-right: 1.5rem !important;
+  }
+  .sortable-header:hover {
     background-color: #f3f4f6;
-    color: #4b5563;
-    border: 1px solid #d1d5db;
   }
-  .sort-button:hover {
-    background-color: #e5e7eb;
+  .sort-indicator {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    opacity: 0.5;
   }
-  .sort-button.active {
-    background-color: #3b82f6;
-    color: white;
-    border-color: #3b82f6;
+  .sort-indicator.active {
+    opacity: 1;
   }
-  .sort-options {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 1rem;
+  .sort-asc::after {
+    content: "▲";
+    font-size: 0.75rem;
+  }
+  .sort-desc::after {
+    content: "▼";
+    font-size: 0.75rem;
   }
   .pagination-controls {
     background-color: #f9fafb;
@@ -759,11 +769,11 @@ Operational Dashboard{% endblock %} {% block additional_head %}
         <div class="loading-indicator" id="visualization-3d-loading">
           <div class="spinner"></div>
         </div>
-        <div
-          class="chart-container"
-          id="visualization-3d"
-          style="height: 100%"
-        ></div>
+        <div class="chart-container" id="visualization-3d" style="height: 100%">
+          <div class="flex h-full items-center justify-center text-gray-500">
+            Click "Update Visualization" to generate the 3D view.
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -843,38 +853,56 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       </div>
     </div>
 
-    <!-- Sort Options -->
-    <div class="sort-options">
-      <span class="font-medium text-gray-700">Sort by:</span>
-      <button id="sort-sl-no" class="sort-button active" data-sort="slNo">
-        Serial Number
-      </button>
-      <button id="sort-weight" class="sort-button" data-sort="finalWeight">
-        Weight
-      </button>
-      <button id="sort-thickness" class="sort-button" data-sort="finalThk">
-        Thickness
-      </button>
-      <button id="sort-width" class="sort-button" data-sort="finalWidth">
-        Width
-      </button>
-      <button id="sort-age" class="sort-button" data-sort="age">Age</button>
-      <button id="sort-product" class="sort-button" data-sort="product">
-        Product
-      </button>
-      <button
-        id="clear-sorting"
-        class="filter-button filter-button-secondary ml-4"
-      >
-        Clear Sorting
-      </button>
-    </div>
-
-    <!-- Column Selector -->
+    <!-- Replace with a more compact column selector dropdown -->
     <div class="filter-container mb-4">
-      <div class="font-medium text-gray-700 mb-2">Show/Hide Columns:</div>
-      <div class="flex flex-wrap gap-2" id="column-toggles">
-        <!-- Column toggles will be populated dynamically -->
+      <div class="flex justify-between items-center">
+        <div class="font-medium text-gray-700">Table Columns</div>
+        <div class="relative">
+          <button
+            id="column-selector-btn"
+            class="filter-button filter-button-secondary flex items-center gap-2"
+          >
+            <span>Show/Hide Columns</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+          <div
+            id="column-dropdown"
+            class="absolute right-0 mt-2 bg-white border border-gray-200 rounded-md shadow-lg z-20 p-3 hidden"
+            style="width: 280px; max-height: 400px; overflow-y: auto"
+          >
+            <div
+              class="flex justify-between mb-2 pb-2 border-b border-gray-200"
+            >
+              <button
+                id="select-all-columns"
+                class="text-sm text-blue-600 hover:text-blue-800"
+              >
+                Select All
+              </button>
+              <button
+                id="deselect-all-columns"
+                class="text-sm text-blue-600 hover:text-blue-800"
+              >
+                Deselect All
+              </button>
+            </div>
+            <div id="column-toggles" class="grid grid-cols-1 gap-1">
+              <!-- Column toggles will be populated dynamically -->
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -957,6 +985,7 @@ Operational Dashboard{% endblock %} {% block additional_head %}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
   $(document).ready(function () {
+    // Update the tab switching function to not auto-load 3D visualization
     // Tab switching
     $(".tab").on("click", function () {
       const tabId = $(this).data("tab");
@@ -976,7 +1005,10 @@ Operational Dashboard{% endblock %} {% block additional_head %}
         // Don't auto-load analysis data, wait for user to apply filters
         // Just show the filter controls
       } else if (tabId === "3d-visualization") {
-        // Auto-load 3D visualization with default 100 data points
+        // Automatically load 3D visualization when tab is selected
+        $("#visualization-3d").html(
+          '<div class="flex h-full items-center justify-center text-gray-500">Loading 3D visualization...</div>'
+        );
         update3DVisualization();
       } else if (tabId === "data-table") {
         initializeDataTable();
@@ -998,6 +1030,7 @@ Operational Dashboard{% endblock %} {% block additional_head %}
     let currentSortParam = "slNo";
     let currentSortDirection = "asc";
     let sortingApplied = false;
+    let sortClickCount = {}; // Track clicks per column for 3-state sorting
 
     // Cache for summary data
     let summaryDataCache = null;
@@ -1018,12 +1051,6 @@ Operational Dashboard{% endblock %} {% block additional_head %}
     }
 
     function loadSummaryData() {
-      // If we already have cached data, use it
-      if (summaryDataCache && summaryChartsLoaded) {
-        updateSummaryCards(summaryDataCache);
-        return;
-      }
-
       // Show loading indicators
       $("#daily-coil-loading, #coil-distribution-loading").show();
 
@@ -1041,22 +1068,16 @@ Operational Dashboard{% endblock %} {% block additional_head %}
         },
       });
 
-      // Only load charts if they haven't been loaded yet
-      if (!summaryChartsLoaded) {
-        // Load summary charts
-        loadChart("daily-coil", "/production_overview/daily_production_chart");
-        loadChart(
-          "coil-distribution",
-          "/production_overview/coil_distribution_chart",
-          {},
-          function () {
-            summaryChartsLoaded = true;
-          }
-        );
-      } else {
-        // Hide loading indicators if charts are already loaded
-        $("#daily-coil-loading, #coil-distribution-loading").hide();
-      }
+      // Always reload charts to ensure they're properly displayed
+      loadChart("daily-coil", "/production_overview/daily_production_chart");
+      loadChart(
+        "coil-distribution",
+        "/production_overview/coil_distribution_chart",
+        {},
+        function () {
+          summaryChartsLoaded = true;
+        }
+      );
     }
 
     function updateSummaryCards(data) {
@@ -1070,6 +1091,7 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       );
     }
 
+    // Modify the loadChart function to handle callback for error cases too
     function loadChart(chartId, endpoint, params = {}, callback) {
       $(`#${chartId}-loading`).show();
 
@@ -1078,13 +1100,17 @@ Operational Dashboard{% endblock %} {% block additional_head %}
         method: "GET",
         data: params,
         success: function (response) {
-          if (response[`${chartId.replace("-", "_")}_chart`]) {
-            $(`#${chartId}-chart`).html(
-              response[`${chartId.replace("-", "_")}_chart`]
-            );
-          } else if (response.chart) {
-            $(`#${chartId}-chart`).html(response.chart);
+          // Clear any previous chart
+          $(`#${chartId}-chart`).empty();
+
+          if (chartId === "daily-coil") {
+            renderDailyCoilChart(response, chartId);
+          } else if (chartId === "coil-distribution") {
+            renderCoilDistributionChart(response, chartId);
+          } else if (chartId === "coil-analysis") {
+            renderCoilAnalysisChart(response, chartId);
           }
+
           $(`#${chartId}-loading`).hide();
 
           if (typeof callback === "function") {
@@ -1105,6 +1131,212 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       });
     }
 
+    // Add new functions to render charts with Plotly
+    function renderDailyCoilChart(data, chartId) {
+      if (!data.labels || data.labels.length === 0) {
+        $(`#${chartId}-chart`).html(
+          '<div class="flex h-full items-center justify-center text-gray-500">No daily production data available</div>'
+        );
+        return;
+      }
+
+      const trace = {
+        x: data.labels,
+        y: data.data,
+        type: "bar",
+        marker: {
+          color: "rgb(55, 83, 109)",
+        },
+        text: data.data,
+        textposition: "auto",
+        hovertemplate: "Number of Coils: %{y}<extra></extra>",
+      };
+
+      const layout = {
+        title: "Daily Coil Production",
+        xaxis: {
+          title: "Date",
+          tickangle: 45,
+        },
+        yaxis: {
+          title: "Number of Coils",
+        },
+        plot_bgcolor: "rgba(242, 244, 247, 1)",
+        paper_bgcolor: "white",
+        height: 300,
+        margin: { l: 40, r: 40, t: 40, b: 40 },
+      };
+
+      Plotly.newPlot(`${chartId}-chart`, [trace], layout, {
+        displayModeBar: false,
+        responsive: true,
+      });
+    }
+
+    function renderCoilDistributionChart(data, chartId) {
+      if (!data.labels || data.labels.length === 0) {
+        $(`#${chartId}-chart`).html(
+          '<div class="flex h-full items-center justify-center text-gray-500">No coil product data available</div>'
+        );
+        return;
+      }
+
+      // Define a colorful palette
+      const colors = [
+        "rgb(82, 113, 255)", // Blue
+        "rgb(255, 99, 71)", // Coral
+        "rgb(34, 197, 94)", // Green
+        "rgb(168, 85, 247)", // Purple
+        "rgb(251, 146, 60)", // Orange
+        "rgb(236, 72, 153)", // Pink
+        "rgb(234, 179, 8)", // Yellow
+      ];
+
+      const trace = {
+        labels: data.labels,
+        values: data.data,
+        type: "pie",
+        hole: 0.4,
+        marker: {
+          colors: colors,
+        },
+        textinfo: "label+percent",
+        hovertemplate:
+          "<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>",
+        texttemplate: "%{percent}",
+        textposition: "outside",
+        textfont: {
+          size: 10,
+        },
+      };
+
+      const layout = {
+        title: {
+          text: "Coil Product Distribution",
+          x: 0.5,
+          y: 0.95,
+          xanchor: "center",
+          yanchor: "top",
+          font: {
+            size: 16,
+          },
+        },
+        showlegend: false,
+        height: 300,
+        margin: { l: 20, r: 20, t: 40, b: 20 },
+        plot_bgcolor: "white",
+      };
+
+      Plotly.newPlot(`${chartId}-chart`, [trace], layout, {
+        displayModeBar: false,
+        responsive: true,
+      });
+    }
+
+    function renderCoilAnalysisChart(data, chartId) {
+      if (!data.dates || data.dates.length === 0) {
+        $(`#${chartId}-chart`).html(
+          '<div class="flex h-full items-center justify-center text-gray-500">No coil analysis data available</div>'
+        );
+        return;
+      }
+
+      const traces = [
+        // Thickness comparison
+        {
+          x: data.dates,
+          y: data.planThickness,
+          name: "Planned Thickness",
+          line: { color: "#1f77b4", width: 2 },
+          mode: "lines+markers",
+          hovertemplate:
+            "<b>Product:</b> %{customdata}<br>" +
+            "<b>Date:</b> %{x}<br>" +
+            "<b>Planned Thickness:</b> %{y:.2f} mm<extra></extra>",
+          customdata: data.products,
+        },
+        {
+          x: data.dates,
+          y: data.finalThk,
+          name: "Final Thickness",
+          line: { color: "#ff7f0e", width: 2 },
+          mode: "lines+markers",
+          hovertemplate:
+            "<b>Product:</b> %{customdata}<br>" +
+            "<b>Date:</b> %{x}<br>" +
+            "<b>Final Thickness:</b> %{y:.2f} mm<extra></extra>",
+          customdata: data.products,
+        },
+        // Width comparison
+        {
+          x: data.dates,
+          y: data.planWidth,
+          name: "Planned Width",
+          line: { color: "#2ca02c", width: 2 },
+          mode: "lines+markers",
+          yaxis: "y2",
+          hovertemplate:
+            "<b>Product:</b> %{customdata}<br>" +
+            "<b>Date:</b> %{x}<br>" +
+            "<b>Planned Width:</b> %{y:.0f} mm<extra></extra>",
+          customdata: data.products,
+        },
+        {
+          x: data.dates,
+          y: data.finalWidth,
+          name: "Final Width",
+          line: { color: "#d62728", width: 2 },
+          mode: "lines+markers",
+          yaxis: "y2",
+          hovertemplate:
+            "<b>Product:</b> %{customdata}<br>" +
+            "<b>Date:</b> %{x}<br>" +
+            "<b>Final Width:</b> %{y:.0f} mm<extra></extra>",
+          customdata: data.products,
+        },
+      ];
+
+      const layout = {
+        title: "Coil Production Analysis",
+        xaxis: {
+          title: "Date and Time",
+          tickangle: 45,
+          tickformat: "%Y-%m-%d",
+          tickfont: { size: 10 },
+          type: "date",
+        },
+        yaxis: {
+          title: "Thickness (mm)",
+          side: "left",
+          showgrid: true,
+          gridcolor: "rgba(0,0,0,0.1)",
+        },
+        yaxis2: {
+          title: "Width (mm)",
+          side: "right",
+          overlaying: "y",
+          showgrid: false,
+          gridcolor: "rgba(0,0,0,0.1)",
+        },
+        legend: {
+          orientation: "h",
+          yanchor: "bottom",
+          y: 1.02,
+          xanchor: "right",
+          x: 1,
+        },
+        hovermode: "closest",
+        plot_bgcolor: "rgba(240, 240, 240, 0.8)",
+        height: 500,
+        margin: { l: 50, r: 50, t: 80, b: 50 },
+      };
+
+      Plotly.newPlot(`${chartId}-chart`, traces, layout, {
+        responsive: true,
+      });
+    }
+
+    // Update the loadAnalysisData function
     function loadAnalysisData() {
       const fromDate = $("#analysis-from-date").val();
       const toDate = $("#analysis-to-date").val();
@@ -1120,16 +1352,32 @@ Operational Dashboard{% endblock %} {% block additional_head %}
         return;
       }
 
+      // Disable buttons during loading
+      $(
+        "#apply-analysis-filters, #reset-analysis-filters, #export-analysis-data"
+      ).prop("disabled", true);
+
       $("#coil-analysis-loading").show();
       $("#analysis-default-message").hide();
 
-      loadChart("coil-analysis", "/production_overview/coil_analysis_chart", {
-        from_date: fromDate,
-        to_date: toDate,
-        product: product,
-      });
+      loadChart(
+        "coil-analysis",
+        "/production_overview/coil_analysis_chart",
+        {
+          from_date: fromDate,
+          to_date: toDate,
+          product: product,
+        },
+        function () {
+          // Re-enable buttons after loading completes
+          $(
+            "#apply-analysis-filters, #reset-analysis-filters, #export-analysis-data"
+          ).prop("disabled", false);
+        }
+      );
     }
 
+    // Update the update3DVisualization function
     function update3DVisualization() {
       const xAxis = $("#x-axis").val();
       const yAxis = $("#y-axis").val();
@@ -1138,6 +1386,12 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       const visualizationType = $("#visualization-type").val();
       const fromDate = $("#viz-from-date").val();
       const toDate = $("#viz-to-date").val();
+
+      // Disable buttons during loading
+      $("#update-3d-visualization, #export-3d-visualization").prop(
+        "disabled",
+        true
+      );
 
       $("#visualization-3d-loading").show();
 
@@ -1158,6 +1412,12 @@ Operational Dashboard{% endblock %} {% block additional_head %}
             $("#visualization-3d").html(response.visualization_3d);
           }
           $("#visualization-3d-loading").hide();
+
+          // Re-enable buttons after loading completes
+          $("#update-3d-visualization, #export-3d-visualization").prop(
+            "disabled",
+            false
+          );
         },
         error: function (xhr, status, error) {
           console.error("Error loading 3D visualization:", error);
@@ -1165,6 +1425,80 @@ Operational Dashboard{% endblock %} {% block additional_head %}
           $("#visualization-3d").html(
             `<div class="flex h-full items-center justify-center text-gray-500">Error loading visualization. Please try again.</div>`
           );
+
+          // Re-enable buttons after error
+          $("#update-3d-visualization, #export-3d-visualization").prop(
+            "disabled",
+            false
+          );
+        },
+      });
+    }
+
+    // Update the loadTableData function
+    function loadTableData() {
+      const serialNo = $("#table-serial-no").val();
+      const fromDate = $("#table-from-date").val();
+      const toDate = $("#table-to-date").val();
+      const product = $("#table-product").val();
+      const status = $("#table-status").val();
+
+      // Disable buttons during loading
+      $(
+        "#apply-table-filters, #reset-table-filters, #export-table-data, #clear-sorting"
+      ).prop("disabled", true);
+      $(".sort-button").addClass("pointer-events-none opacity-60");
+
+      // Show loading indicator
+      $("#table-body").html(
+        '<tr><td colspan="100%" class="px-3 py-4 text-center text-gray-500">Loading data...</td></tr>'
+      );
+
+      $.ajax({
+        url: "/production_overview/table_data",
+        method: "GET",
+        data: {
+          serial_no: serialNo,
+          from_date: fromDate,
+          to_date: toDate,
+          product: product,
+          status: status,
+          page: currentPage,
+          limit: itemsPerPage,
+          sort_by: currentSortParam,
+          sort_direction: currentSortDirection,
+        },
+        success: function (response) {
+          tableData = response.data;
+          totalPages = Math.ceil(response.total / itemsPerPage);
+
+          // Update pagination info
+          updatePaginationControls(
+            (currentPage - 1) * itemsPerPage + 1,
+            Math.min(currentPage * itemsPerPage, response.total),
+            response.total
+          );
+
+          // Update table with data
+          updateTableWithData(tableData);
+
+          // Re-enable buttons after loading completes
+          $(
+            "#apply-table-filters, #reset-table-filters, #export-table-data, #clear-sorting"
+          ).prop("disabled", false);
+          $(".sort-button").removeClass("pointer-events-none opacity-60");
+        },
+        error: function (xhr, status, error) {
+          console.error("Error loading table data:", error);
+          $("#table-body").html(
+            '<tr><td colspan="100%" class="px-3 py-4 text-center text-red-500">Error loading data. Please try again.</td></tr>'
+          );
+
+          // Re-enable buttons after error
+          $(
+            "#apply-table-filters, #reset-table-filters, #export-table-data, #clear-sorting"
+          ).prop("disabled", false);
+          $(".sort-button").removeClass("pointer-events-none opacity-60");
         },
       });
     }
@@ -1240,61 +1574,62 @@ Operational Dashboard{% endblock %} {% block additional_head %}
 
       allColumns.forEach((column) => {
         if (visibleColumns.includes(column.field)) {
+          // Add sortable class and sort indicators to headers
+          const sortClass =
+            column.field === currentSortParam
+              ? currentSortDirection === "asc"
+                ? "sort-asc"
+                : "sort-desc"
+              : "";
+          const activeClass = column.field === currentSortParam ? "active" : "";
+
           header.append(`
-          <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" data-field="${column.field}">
-            ${column.title}
-          </th>
-        `);
+        <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sortable-header" data-field="${column.field}">
+          ${column.title}
+          <span class="sort-indicator ${sortClass} ${activeClass}"></span>
+        </th>
+      `);
         }
       });
-    }
 
-    function loadTableData() {
-      const serialNo = $("#table-serial-no").val();
-      const fromDate = $("#table-from-date").val();
-      const toDate = $("#table-to-date").val();
-      const product = $("#table-product").val();
-      const status = $("#table-status").val();
+      // Add click handlers to sortable headers
+      $(".sortable-header").on("click", function () {
+        const field = $(this).data("field");
 
-      // Show loading indicator
-      $("#table-body").html(
-        '<tr><td colspan="100%" class="px-3 py-4 text-center text-gray-500">Loading data...</td></tr>'
-      );
+        // Initialize click count if not exists
+        if (!sortClickCount[field]) {
+          sortClickCount[field] = 0;
+        }
 
-      $.ajax({
-        url: "/production_overview/table_data",
-        method: "GET",
-        data: {
-          serial_no: serialNo,
-          from_date: fromDate,
-          to_date: toDate,
-          product: product,
-          status: status,
-          page: currentPage,
-          limit: itemsPerPage,
-          sort_by: currentSortParam,
-          sort_direction: currentSortDirection,
-        },
-        success: function (response) {
-          tableData = response.data;
-          totalPages = Math.ceil(response.total / itemsPerPage);
+        // Increment click count for this column
+        sortClickCount[field]++;
 
-          // Update pagination info
-          updatePaginationControls(
-            (currentPage - 1) * itemsPerPage + 1,
-            Math.min(currentPage * itemsPerPage, response.total),
-            response.total
-          );
+        // Reset other columns' click counts
+        Object.keys(sortClickCount).forEach((key) => {
+          if (key !== field) sortClickCount[key] = 0;
+        });
 
-          // Update table with data
-          updateTableWithData(tableData);
-        },
-        error: function (xhr, status, error) {
-          console.error("Error loading table data:", error);
-          $("#table-body").html(
-            '<tr><td colspan="100%" class="px-3 py-4 text-center text-red-500">Error loading data. Please try again.</td></tr>'
-          );
-        },
+        // Three-state toggle: asc -> desc -> default
+        if (sortClickCount[field] === 1) {
+          // First click: sort ascending
+          currentSortParam = field;
+          currentSortDirection = "asc";
+          sortingApplied = true;
+        } else if (sortClickCount[field] === 2) {
+          // Second click: sort descending
+          currentSortParam = field;
+          currentSortDirection = "desc";
+          sortingApplied = true;
+        } else {
+          // Third click: reset to default
+          currentSortParam = "slNo";
+          currentSortDirection = "asc";
+          sortingApplied = false;
+          sortClickCount[field] = 0;
+        }
+
+        // Reload data with new sorting
+        loadTableData();
       });
     }
 
@@ -1485,49 +1820,8 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       });
 
       // Sort buttons
-      $(".sort-button").on("click", function () {
-        // Remove active class from all buttons
-        $(".sort-button").removeClass("active");
-        // Add active class to clicked button
-        $(this).addClass("active");
-
-        // Get sort parameter
-        const sortParam = $(this).data("sort");
-
-        // Toggle direction if clicking the same column
-        if (sortParam === currentSortParam) {
-          currentSortDirection =
-            currentSortDirection === "asc" ? "desc" : "asc";
-        } else {
-          currentSortParam = sortParam;
-          currentSortDirection = "asc";
-        }
-
-        // Set the flag to indicate sorting has been explicitly applied
-        sortingApplied = true;
-
-        // Reload data with new sorting
-        loadTableData();
-      });
 
       // Clear sorting
-      $("#clear-sorting").on("click", function () {
-        // Remove active class from all sort buttons
-        $(".sort-button").removeClass("active");
-
-        // Reset current sort parameters
-        currentSortParam = "slNo";
-        currentSortDirection = "asc";
-
-        // Set default sort button as active
-        $("#sort-sl-no").addClass("active");
-
-        // Reset the sorting applied flag
-        sortingApplied = false;
-
-        // Reload data with default sorting
-        loadTableData();
-      });
 
       // Pagination handlers
       $("#items-per-page").on("change", function () {
@@ -1571,6 +1865,41 @@ Operational Dashboard{% endblock %} {% block additional_head %}
 
       $("#export-table-data").on("click", function () {
         exportData("table");
+      });
+
+      // Column selector button
+      $("#column-selector-btn").on("click", function (e) {
+        e.stopPropagation(); // Prevent immediate closing
+        $("#column-dropdown").toggleClass("hidden");
+      });
+
+      // Close dropdown when clicking outside
+      $(document).on("click", function (e) {
+        if (
+          !$(e.target).closest("#column-selector-btn, #column-dropdown").length
+        ) {
+          $("#column-dropdown").addClass("hidden");
+        }
+      });
+
+      // Select all columns
+      $("#select-all-columns").on("click", function () {
+        allColumns.forEach((column) => {
+          if (!visibleColumns.includes(column.field)) {
+            visibleColumns.push(column.field);
+          }
+        });
+        generateColumnToggles();
+        generateTableHeader();
+        updateTableWithData(tableData);
+      });
+
+      // Deselect all columns
+      $("#deselect-all-columns").on("click", function () {
+        visibleColumns = [];
+        generateColumnToggles();
+        generateTableHeader();
+        updateTableWithData(tableData);
       });
     }
 

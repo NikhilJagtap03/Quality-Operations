@@ -71,59 +71,98 @@ def get_summary_metrics():
 
 @production_overview.route('/production_overview/daily_production_chart')
 def get_daily_production_chart():
-    if db is None:
-        return jsonify({'error': 'Database connection error'}), 500
-        
-    try:
-        # Fetch coil data
-        coil_data = list(db.coil_production.find({}, {'_id': 0, 'clearanceDate': 1}))
-        
-        # Generate chart
-        chart = generate_daily_production_chart(coil_data)
-        
-        return jsonify({'daily_coil_chart': chart})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+  if db is None:
+      return jsonify({'error': 'Database connection error'}), 500
+      
+  try:
+      # Fetch coil data
+      coil_data = list(db.coil_production.find({}, {'_id': 0, 'clearanceDate': 1}))
+      
+      # Process data for chart
+      df = pd.DataFrame(coil_data)
+      
+      # If no data, return empty result
+      if df.empty:
+          return jsonify({'data': [], 'labels': []})
+      
+      # Convert clearanceDate to datetime
+      df['clearanceDate'] = pd.to_datetime(df['clearanceDate'])
+      
+      # Extract date from clearanceDate (without time)
+      df['production_date'] = df['clearanceDate'].dt.date
+      
+      # Group by date and count coils
+      daily_counts = df.groupby('production_date').size().reset_index(name='count')
+      daily_counts = daily_counts.sort_values('production_date')
+      
+      # Convert dates to strings for JSON serialization
+      dates = [d.strftime('%Y-%m-%d') for d in daily_counts['production_date']]
+      counts = daily_counts['count'].tolist()
+      
+      return jsonify({
+          'labels': dates,
+          'data': counts
+      })
+  except Exception as e:
+      return jsonify({'error': str(e)}), 500
 
 @production_overview.route('/production_overview/coil_analysis_chart')
 def get_coil_analysis_chart():
-    if db is None:
-        return jsonify({'error': 'Database connection error'}), 500
-        
-    try:
-        # Get filter parameters
-        from_date = request.args.get('from_date')
-        to_date = request.args.get('to_date')
-        product = request.args.get('product')
-        
-        # Build query
-        query = {}
-        if from_date and to_date:
-            query['clearanceDate'] = {
-                '$gte': from_date,
-                '$lte': to_date
-            }
-        if product:
-            query['product'] = product
-        
-        # Fetch filtered coil data
-        coil_data = list(db.coil_production.find(query, {
-            '_id': 0,
-            'clearanceDate': 1,
-            'planThickness': 1,
-            'finalThk': 1,
-            'planWidth': 1,
-            'finalWidth': 1,
-            'finalWeight': 1,
-            'product': 1
-        }))
-        
-        # Generate chart
-        chart = generate_coil_analysis_chart(coil_data)
-        
-        return jsonify({'coil_analysis_chart': chart})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+  if db is None:
+      return jsonify({'error': 'Database connection error'}), 500
+      
+  try:
+      # Get filter parameters
+      from_date = request.args.get('from_date')
+      to_date = request.args.get('to_date')
+      product = request.args.get('product')
+      
+      # Build query
+      query = {}
+      if from_date and to_date:
+          query['clearanceDate'] = {
+              '$gte': from_date,
+              '$lte': to_date
+          }
+      if product:
+          query['product'] = product
+      
+      # Fetch filtered coil data
+      coil_data = list(db.coil_production.find(query, {
+          '_id': 0,
+          'clearanceDate': 1,
+          'planThickness': 1,
+          'finalThk': 1,
+          'planWidth': 1,
+          'finalWidth': 1,
+          'finalWeight': 1,
+          'product': 1
+      }))
+      
+      # Process data for chart
+      df = pd.DataFrame(coil_data)
+      
+      # If no data, return empty result
+      if df.empty:
+          return jsonify({'dates': [], 'planThickness': [], 'finalThk': [], 'planWidth': [], 'finalWidth': []})
+      
+      # Convert clearanceDate to datetime and sort
+      df['clearanceDate'] = pd.to_datetime(df['clearanceDate'])
+      df = df.sort_values('clearanceDate')
+      
+      # Convert dates to strings for JSON serialization
+      dates = [d.strftime('%Y-%m-%d %H:%M:%S') for d in df['clearanceDate']]
+      
+      return jsonify({
+          'dates': dates,
+          'planThickness': df['planThickness'].tolist(),
+          'finalThk': df['finalThk'].tolist(),
+          'planWidth': df['planWidth'].tolist(),
+          'finalWidth': df['finalWidth'].tolist(),
+          'products': df['product'].tolist() if 'product' in df.columns else []
+      })
+  except Exception as e:
+      return jsonify({'error': str(e)}), 500
 
 @production_overview.route('/production_overview/visualization_3d')
 def get_3d_visualization():
@@ -486,10 +525,29 @@ def get_coil_distribution_chart():
       # Fetch coil data
       coil_data = list(db.coil_production.find({}, {'_id': 0, 'product': 1}))
       
-      # Generate chart
-      chart = generate_coil_distribution_chart(coil_data)
+      # Process data for chart
+      df = pd.DataFrame(coil_data)
       
-      return jsonify({'coil_distribution_chart': chart})
+      # If no data, return empty result
+      if df.empty:
+          return jsonify({'labels': [], 'data': []})
+      
+      # Count products
+      product_counts = df['product'].value_counts().reset_index()
+      product_counts.columns = ['product', 'count']
+      
+      # Calculate percentages
+      total_products = product_counts['count'].sum()
+      product_counts['percentage'] = (product_counts['count'] / total_products * 100).round(1)
+      
+      # Sort by count in descending order
+      product_counts = product_counts.sort_values('count', ascending=False)
+      
+      return jsonify({
+          'labels': product_counts['product'].tolist(),
+          'data': product_counts['count'].tolist(),
+          'percentages': product_counts['percentage'].tolist()
+      })
   except Exception as e:
       return jsonify({'error': str(e)}), 500
 
@@ -747,74 +805,75 @@ def generate_coil_distribution_chart(coil_data):
   )
 
 def generate_daily_production_chart(coil_data):
-    """
-    Generates a daily production chart showing the number of coils produced each day.
-    """
-    if not coil_data:
-        return "<p class='text-gray-500'>No daily production data available</p>"
+  """
+  Generates a daily production chart showing the number of coils produced each day.
+  """
+  if not coil_data:
+      return "<p class='text-gray-500'>No daily production data available</p>"
 
-    df = pd.DataFrame(coil_data)
-    
-    # Convert clearanceDate to datetime
-    df['clearanceDate'] = pd.to_datetime(df['clearanceDate'])
-    
-    # Extract date from clearanceDate (without time)
-    df['production_date'] = df['clearanceDate'].dt.date
-    
-    # Group by date and count coils
-    daily_counts = df.groupby('production_date').size().reset_index(name='count')
-    daily_counts = daily_counts.sort_values('production_date')
-    
-    # Create the bar chart
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=daily_counts['production_date'],
-        y=daily_counts['count'],
-        marker_color='rgb(55, 83, 109)',
-        text=daily_counts['count'],
-        textposition='auto',
-    ))
-    
-    fig.update_layout(
-        title='Daily Coil Production',
-        xaxis_title='Date',
-        yaxis_title='Number of Coils',
-        plot_bgcolor='rgba(242, 244, 247, 1)',
-        paper_bgcolor='white',
-        height=300,
-        margin=dict(l=40, r=40, t=40, b=40)
-    )
-    
-    # If there are too many dates, limit the number of ticks shown
-    if len(daily_counts) > 15:
-        # Show every nth date to avoid overcrowding
-        n = max(1, len(daily_counts) // 15)
-        tickvals = daily_counts['production_date'].iloc[::n]
-        fig.update_xaxes(
-            tickangle=45,
-            tickmode='array',
-            tickvals=tickvals,
-            showgrid=True, 
-            gridwidth=1, 
-            gridcolor='white'
-        )
-    else:
-        fig.update_xaxes(
-            tickangle=45,
-            tickmode='array',
-            tickvals=daily_counts['production_date'],
-            showgrid=True, 
-            gridwidth=1, 
-            gridcolor='white'
-        )
-    
-    fig.update_yaxes(
-        showgrid=True, 
-        gridwidth=1, 
-        gridcolor='white'
-    )
-    
-    return fig.to_html(full_html=False)
+  df = pd.DataFrame(coil_data)
+  
+  # Convert clearanceDate to datetime
+  df['clearanceDate'] = pd.to_datetime(df['clearanceDate'])
+  
+  # Extract date from clearanceDate (without time)
+  df['production_date'] = df['clearanceDate'].dt.date
+  
+  # Group by date and count coils
+  daily_counts = df.groupby('production_date').size().reset_index(name='count')
+  daily_counts = daily_counts.sort_values('production_date')
+  
+  # Create the bar chart
+  fig = go.Figure()
+  fig.add_trace(go.Bar(
+      x=daily_counts['production_date'],
+      y=daily_counts['count'],
+      marker_color='rgb(55, 83, 109)',
+      text=daily_counts['count'],
+      textposition='auto',
+      hovertemplate='Date: %{x}<br>Number of Coils: %{y}<extra></extra>'
+  ))
+  
+  fig.update_layout(
+      title='Daily Coil Production',
+      xaxis_title='Date',
+      yaxis_title='Number of Coils',
+      plot_bgcolor='rgba(242, 244, 247, 1)',
+      paper_bgcolor='white',
+      height=300,
+      margin=dict(l=40, r=40, t=40, b=40)
+  )
+  
+  # If there are too many dates, limit the number of ticks shown
+  if len(daily_counts) > 15:
+      # Show every nth date to avoid overcrowding
+      n = max(1, len(daily_counts) // 15)
+      tickvals = daily_counts['production_date'].iloc[::n]
+      fig.update_xaxes(
+          tickangle=45,
+          tickmode='array',
+          tickvals=tickvals,
+          showgrid=True, 
+          gridwidth=1, 
+          gridcolor='white'
+      )
+  else:
+      fig.update_xaxes(
+          tickangle=45,
+          tickmode='array',
+          tickvals=daily_counts['production_date'],
+          showgrid=True, 
+          gridwidth=1, 
+          gridcolor='white'
+      )
+  
+  fig.update_yaxes(
+      showgrid=True, 
+      gridwidth=1, 
+      gridcolor='white'
+  )
+  
+  return fig.to_html(full_html=False)
 
 def generate_coil_analysis_chart(coil_data):
     """
@@ -918,7 +977,6 @@ def generate_coil_analysis_chart(coil_data):
     )
 
     return fig.to_html(full_html=False, include_plotlyjs='cdn')
-
 
 
 
