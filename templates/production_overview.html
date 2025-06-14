@@ -101,62 +101,84 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       transform: rotate(360deg);
     }
   }
+  /* Update the CSS for filter controls to make them more compact */
   .filter-container {
     background-color: #f8f9fa;
     border: 1px solid #e9ecef;
     border-radius: 0.375rem;
-    padding: 1rem;
+    padding: 0.75rem;
     margin-bottom: 1rem;
   }
+
+  /* Improve filter group alignment */
   .filter-group {
     display: flex;
-    gap: 1rem;
-    align-items: center;
-    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: flex-end; /* Align items at the bottom */
+    flex-wrap: nowrap;
   }
+
   .filter-item {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.25rem;
+    flex: 0 0 auto;
   }
+
   .filter-label {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     font-weight: 500;
     color: #4b5563;
   }
+
   .filter-input {
-    padding: 0.5rem;
+    padding: 0.375rem 0.5rem;
     border: 1px solid #d1d5db;
     border-radius: 0.375rem;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
+    min-width: 120px;
+    max-width: 150px;
   }
+
+  /* Update the CSS for filter buttons to make them look more like buttons */
   .filter-button {
-    padding: 0.5rem 1rem;
+    padding: 0.375rem 0.75rem;
     border-radius: 0.375rem;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 70px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    border: 1px solid transparent;
   }
-  .filter-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
+
   .filter-button-primary {
     background-color: #3b82f6;
     color: white;
+    border-color: #2563eb;
   }
+
   .filter-button-primary:hover {
     background-color: #2563eb;
+    border-color: #1d4ed8;
   }
+
   .filter-button-secondary {
     background-color: #9ca3af;
     color: white;
+    border-color: #6b7280;
   }
+
   .filter-button-secondary:hover {
     background-color: #6b7280;
+    border-color: #4b5563;
   }
+
   .table-container {
     overflow-x: auto;
     max-width: 100%;
@@ -236,6 +258,40 @@ Operational Dashboard{% endblock %} {% block additional_head %}
     font-size: 0.875rem;
     background-color: white;
     min-width: 150px;
+  }
+  /* Make visualization controls more compact */
+  .visualization-controls {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    align-items: flex-end; /* Align items at the bottom */
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 0 0 auto;
+  }
+
+  .control-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #4b5563;
+  }
+
+  .axis-select {
+    padding: 0.375rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    background-color: white;
+    min-width: 120px;
+    max-width: 150px;
+    height: 28px; /* Match the height of filter-input */
   }
   .visualization-controls {
     display: flex;
@@ -402,6 +458,356 @@ Operational Dashboard{% endblock %} {% block additional_head %}
     visibility: visible;
     opacity: 1;
   }
+
+  /* Add these styles to the existing <style> section */
+  .js-plotly-plot .plotly .modebar {
+    position: absolute !important;
+    top: 5px !important;
+    right: 10px !important;
+    z-index: 1000 !important;
+  }
+
+  .js-plotly-plot .plotly .modebar-horizontal {
+    display: flex !important;
+    flex-direction: row !important;
+    background-color: rgba(255, 255, 255, 0.7) !important;
+    border-radius: 4px !important;
+    padding: 2px !important;
+  }
+
+  .js-plotly-plot .plotly .modebar-btn {
+    margin: 2px !important;
+    padding: 2px !important;
+  }
+
+  .js-plotly-plot .plotly .modebar-group {
+    display: flex !important;
+    flex-direction: row !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ensure chart containers have proper padding for modebar */
+  .chart-card-body {
+    position: relative !important;
+    padding-top: 40px !important;
+    overflow: visible !important;
+  }
+
+  /* Fix for right side overflow */
+  .chart-container {
+    width: 100% !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  /* Ensure axis labels don't overflow */
+  .js-plotly-plot .plotly .xtitle,
+  .js-plotly-plot .plotly .ytitle {
+    font-size: 12px !important;
+  }
+
+  /* Add padding to chart containers to prevent overflow */
+  .chart-container {
+    padding: 5px;
+  }
+
+  /* Add these styles to the <style> section */
+
+  .js-plotly-plot {
+    overflow: visible !important;
+  }
+
+  /* Fix chart container to prevent overflow */
+  .chart-container {
+    width: 100% !important;
+    overflow: hidden !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+    padding-right: 10px !important;
+  }
+
+  /* Ensure the Plotly chart doesn't overflow */
+  .js-plotly-plot {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  /* Fix the modebar positioning */
+  .js-plotly-plot .plotly .modebar {
+    position: absolute !important;
+    top: 5px !important;
+    right: 10px !important;
+    z-index: 1000 !important;
+    background-color: rgba(255, 255, 255, 0.7) !important;
+    border-radius: 4px !important;
+  }
+
+  /* Ensure the chart body has enough padding for the modebar */
+  .chart-card-body {
+    position: relative !important;
+    padding-top: 40px !important;
+    padding-right: 10px !important;
+    overflow: hidden !important;
+  }
+
+  /* Update the axis-select to match filter-input styling */
+  .axis-select {
+    padding: 0.375rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    background-color: white;
+    min-width: 120px;
+    max-width: 150px;
+    height: 28px; /* Match the height of filter-input */
+  }
+
+  /* Make filter inputs consistent height */
+  .filter-input {
+    padding: 0.375rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    min-width: 120px;
+    max-width: 150px;
+    height: 28px; /* Consistent height */
+  }
+
+  /* Add notification styles */
+  .notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    background-color: #3b82f6;
+    color: white;
+    border-radius: 4px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-width: 300px;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.3s, transform 0.3s;
+  }
+
+  .notification.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .notification.info {
+    background-color: #3b82f6;
+  }
+
+  .notification.warning {
+    background-color: #f59e0b;
+  }
+
+  .notification.error {
+    background-color: #ef4444;
+  }
+
+  .notification.success {
+    background-color: #10b981;
+  }
+
+  /* Enhanced table header styles for integrated search */
+  .table-header-cell {
+    position: relative;
+    vertical-align: top;
+    padding: 0.75rem;
+    background-color: #f9fafb;
+    border-bottom: 2px solid #e5e7eb;
+    min-width: 120px;
+  }
+
+  .header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    height: 70px; /* Fixed height for consistency */
+    justify-content: space-between;
+  }
+
+  .header-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #374151;
+    cursor: pointer;
+    user-select: none;
+    padding: 0.25rem 0.5rem;
+    position: relative;
+    min-height: 24px;
+    max-height: 24px;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+  }
+
+  .header-title:hover {
+    background-color: #f3f4f6;
+  }
+
+  .header-search-container {
+    position: relative;
+    height: 32px; /* Fixed height for search container */
+    display: flex;
+    align-items: center;
+  }
+
+  .header-search {
+    width: 100%;
+    height: 28px; /* Fixed height for all search inputs */
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    background-color: white;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+  }
+
+  .header-search:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #3b82f6;
+  }
+
+  .header-search::placeholder {
+    color: #9ca3af;
+    font-size: 0.7rem;
+  }
+
+  /* Sort indicator positioning for new layout */
+  .sort-indicator {
+    position: absolute;
+    right: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .sort-indicator.active {
+    opacity: 1;
+  }
+
+  /* Clear search button */
+  .clear-search {
+    position: absolute;
+    right: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 0.125rem;
+    border-radius: 0.125rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .header-search:not(:placeholder-shown) + .clear-search {
+    opacity: 1;
+  }
+
+  .clear-search:hover {
+    color: #6b7280;
+    background-color: #f3f4f6;
+  }
+
+  /* Responsive table adjustments */
+  @media (max-width: 768px) {
+    .header-content {
+      height: 60px;
+      gap: 0.25rem;
+    }
+    
+    .header-title {
+      font-size: 0.7rem;
+      min-height: 20px;
+      max-height: 20px;
+    }
+    
+    .header-search-container {
+      height: 28px;
+    }
+    
+    .header-search {
+      height: 24px;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.4rem;
+    }
+  }
+
+  /* Table search toggle styles */
+  .table-search-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .search-toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+  }
+
+  .search-toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .search-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 24px;
+  }
+
+  .search-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+  }
+
+  input:checked + .search-toggle-slider {
+    background-color: #3b82f6;
+  }
+
+  input:checked + .search-toggle-slider:before {
+    transform: translateX(20px);
+  }
 </style>
 {% endblock %} {% block content %}
 <h1 class="text-3xl font-bold text-gray-800 mb-4">Production Overview</h1>
@@ -544,23 +950,23 @@ Operational Dashboard{% endblock %} {% block additional_head %}
             <!-- Products will be populated dynamically -->
           </select>
         </div>
-        <div class="filter-item mt-auto">
+        <div class="filter-item">
           <button
             id="apply-analysis-filters"
             class="filter-button filter-button-primary"
           >
-            Apply Filters
-          </button>
+            Apply
+          </select>
         </div>
-        <div class="filter-item mt-auto">
+        <div class="filter-item">
           <button
             id="reset-analysis-filters"
             class="filter-button filter-button-secondary"
           >
-            Reset Filters
+            Reset
           </button>
         </div>
-        <div class="filter-item mt-auto">
+        <div class="filter-item">
           <button
             id="export-analysis-data"
             class="filter-button filter-button-secondary"
@@ -616,7 +1022,6 @@ Operational Dashboard{% endblock %} {% block additional_head %}
             class="flex h-full items-center justify-center text-gray-500"
             id="analysis-default-message"
           >
-            Please apply filters to view the analysis chart.
           </div>
         </div>
       </div>
@@ -625,6 +1030,7 @@ Operational Dashboard{% endblock %} {% block additional_head %}
 
   <!-- 3D Visualization Tab -->
   <div class="tab-content" id="3d-visualization-tab">
+    <!-- Update the 3D Visualization Tab filter controls to be more compact -->
     <div class="filter-container">
       <div class="visualization-controls">
         <div class="filter-item">
@@ -645,65 +1051,76 @@ Operational Dashboard{% endblock %} {% block additional_head %}
             placeholder="Select date"
           />
         </div>
+        <div class="filter-item">
+          <label class="filter-label">Product</label>
+          <select id="viz-product-filter" class="filter-input">
+            <option value="">All Products</option>
+            <!-- Products will be populated dynamically -->
+          </select>
+        </div>
         <div class="control-group">
-          <label class="control-label" for="x-axis">X-Axis Parameter:</label>
+          <label class="control-label" for="x-axis">X-Axis</label>
           <select id="x-axis" class="axis-select">
-            <option value="finalThk">Final Thickness</option>
-            <option value="planThickness">Planned Thickness</option>
-            <option value="finalWidth">Final Width</option>
-            <option value="planWidth">Planned Width</option>
-            <option value="finalWeight">Final Weight</option>
-            <option value="yieldStrength">Yield Strength</option>
-            <option value="elongation">Elongation</option>
-            <option value="hardness">Hardness</option>
-            <option value="age">Age</option>
+            <option value="finalThk">Final Thickness (mm)</option>
+            <option value="planThickness">Planned Thickness (mm)</option>
+            <option value="finalWidth">Final Width (mm)</option>
+            <option value="planWidth">Planned Width (mm)</option>
+            <option value="finalWeight">Final Weight (kg)</option>
+            <option value="yieldStrength">Yield Strength (MPa)</option>
+            <option value="elongation">Elongation (%)</option>
+            <option value="hardness">Hardness (HV)</option>
+            <option value="age">Age (days)</option>
           </select>
         </div>
 
         <div class="control-group">
-          <label class="control-label" for="y-axis">Y-Axis Parameter:</label>
+          <label class="control-label" for="y-axis">Y-Axis</label>
           <select id="y-axis" class="axis-select">
-            <option value="finalWidth">Final Width</option>
-            <option value="finalThk">Final Thickness</option>
-            <option value="planThickness">Planned Thickness</option>
-            <option value="planWidth">Planned Width</option>
-            <option value="finalWeight">Final Weight</option>
-            <option value="yieldStrength">Yield Strength</option>
-            <option value="elongation">Elongation</option>
-            <option value="hardness">Hardness</option>
-            <option value="age">Age</option>
+            <option value="finalWidth">Final Width (mm)</option>
+            <option value="finalThk">Final Thickness (mm)</option>
+            <option value="planThickness">Planned Thickness (mm)</option>
+            <option value="planWidth">Planned Width (mm)</option>
+            <option value="finalWeight">Final Weight (kg)</option>
+            <option value="yieldStrength">Yield Strength (MPa)</option>
+            <option value="elongation">Elongation (%)</option>
+            <option value="hardness">Hardness (HV)</option>
+            <option value="age">Age (days)</option>
           </select>
         </div>
 
         <div class="control-group">
-          <label class="control-label" for="z-axis">Z-Axis Parameter:</label>
+          <label class="control-label" for="z-axis">Z-Axis</label>
           <select id="z-axis" class="axis-select">
-            <option value="finalWeight">Final Weight</option>
-            <option value="finalThk">Final Thickness</option>
-            <option value="planThickness">Planned Thickness</option>
-            <option value="finalWidth">Final Width</option>
-            <option value="planWidth">Planned Width</option>
-            <option value="yieldStrength">Yield Strength</option>
-            <option value="elongation">Elongation</option>
-            <option value="hardness">Hardness</option>
-            <option value="age">Age</option>
+            <option value="finalWeight">Final Weight (kg)</option>
+            <option value="finalThk">Final Thickness (mm)</option>
+            <option value="planThickness">Planned Thickness (mm)</option>
+            <option value="finalWidth">Final Width (mm)</option>
+            <option value="planWidth">Planned Width (mm)</option>
+            <option value="yieldStrength">Yield Strength (MPa)</option>
+            <option value="elongation">Elongation (%)</option>
+            <option value="hardness">Hardness (HV)</option>
+            <option value="age">Age (days)</option>
           </select>
         </div>
 
         <div class="control-group">
-          <label class="control-label" for="color-by">Color By:</label>
+          <label class="control-label" for="color-by">Color By</label>
           <select id="color-by" class="axis-select">
             <option value="product">Product</option>
             <option value="finalStatus">Final Status</option>
             <option value="material">Material</option>
             <option value="shift">Shift</option>
+            <option value="planned_vs_final_thickness">
+              Planned vs Final Thickness
+            </option>
+            <option value="planned_vs_final_width">
+              Planned vs Final Width
+            </option>
           </select>
         </div>
 
         <div class="control-group">
-          <label class="control-label" for="visualization-type"
-            >Visualization Type:</label
-          >
+          <label class="control-label" for="visualization-type">Type</label>
           <select id="visualization-type" class="axis-select">
             <option value="scatter">3D Scatter</option>
             <option value="surface">3D Surface</option>
@@ -711,16 +1128,16 @@ Operational Dashboard{% endblock %} {% block additional_head %}
           </select>
         </div>
 
-        <div class="control-group mt-auto">
+        <div class="control-group">
           <button
             id="update-3d-visualization"
             class="filter-button filter-button-primary"
           >
-            Update Visualization
+            Update
           </button>
         </div>
 
-        <div class="control-group mt-auto">
+        <div class="control-group">
           <button
             id="export-3d-visualization"
             class="filter-button filter-button-secondary"
@@ -753,8 +1170,10 @@ Operational Dashboard{% endblock %} {% block additional_head %}
             </button>
             <span class="tooltip-text"
               >The visualization shows all available data points by default. Use
-              the date range filters to limit the data if needed for better
-              performance.</span
+              the filters to limit the data. The "Planned vs Final" color
+              options show variance between planned and actual values - green
+              indicates values close to plan, red indicates larger
+              deviations.</span
             >
           </div>
           <button
@@ -783,15 +1202,7 @@ Operational Dashboard{% endblock %} {% block additional_head %}
     <!-- Table Filters -->
     <div class="filter-container">
       <div class="filter-group">
-        <div class="filter-item">
-          <label class="filter-label">Serial No</label>
-          <input
-            type="text"
-            id="table-serial-no"
-            class="filter-input"
-            placeholder="Search by Serial No"
-          />
-        </div>
+        
         <div class="filter-item">
           <label class="filter-label">From Date</label>
           <input
@@ -826,23 +1237,23 @@ Operational Dashboard{% endblock %} {% block additional_head %}
             <option value="Pending">Pending</option>
           </select>
         </div>
-        <div class="filter-item mt-auto">
+        <div class="filter-item">
           <button
             id="apply-table-filters"
             class="filter-button filter-button-primary"
           >
-            Apply Filters
+            Apply
           </button>
         </div>
-        <div class="filter-item mt-auto">
+        <div class="filter-item">
           <button
             id="reset-table-filters"
             class="filter-button filter-button-secondary"
           >
-            Reset Filters
+            Reset
           </button>
         </div>
-        <div class="filter-item mt-auto">
+        <div class="filter-item">
           <button
             id="export-table-data"
             class="filter-button filter-button-secondary"
@@ -850,10 +1261,19 @@ Operational Dashboard{% endblock %} {% block additional_head %}
             Export
           </button>
         </div>
+        <div class="filter-item">
+          <label class="filter-label">Column Search</label>
+          <div class="table-search-toggle">
+            <label class="search-toggle-switch">
+              <input type="checkbox" id="enable-table-search">
+              <span class="search-toggle-slider"></span>
+            </label>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Replace with a more compact column selector dropdown -->
+    <!-- Column Selector -->
     <div class="filter-container mb-4">
       <div class="flex justify-between items-center">
         <div class="font-medium text-gray-700">Table Columns</div>
@@ -967,6 +1387,8 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       </div>
     </div>
   </div>
+  <!-- Notification container -->
+  <div id="notification" class="notification" style="display: none"></div>
 </div>
 
 <!-- Expanded Chart Modal -->
@@ -1002,15 +1424,39 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       if (tabId === "summary") {
         loadSummaryData();
       } else if (tabId === "production-analysis") {
-        // Don't auto-load analysis data, wait for user to apply filters
-        // Just show the filter controls
+        // Set default date range for production analysis tab (Nov 30 - Jan 1, 2024)
+        if (!$("#analysis-from-date").val()) {
+          $("#analysis-from-date").val("2023-11-30");
+        }
+        if (!$("#analysis-to-date").val()) {
+          $("#analysis-to-date").val("2024-01-01");
+        }
+        
+        // Automatically load analysis data when tab is selected
+        loadAnalysisData();
       } else if (tabId === "3d-visualization") {
+        // Set default date range for 3D visualization tab (Nov 30 - Dec 31, 2023)
+        if (!$("#viz-from-date").val()) {
+          $("#viz-from-date").val("2023-11-30");
+        }
+        if (!$("#viz-to-date").val()) {
+          $("#viz-to-date").val("2024-01-01");
+        }
+
         // Automatically load 3D visualization when tab is selected
         $("#visualization-3d").html(
           '<div class="flex h-full items-center justify-center text-gray-500">Loading 3D visualization...</div>'
         );
         update3DVisualization();
       } else if (tabId === "data-table") {
+        // Set default date range for data table tab (Nov 30 - Dec 31, 2023)
+        if (!$("#table-from-date").val()) {
+          $("#table-from-date").val("2023-11-30");
+        }
+        if (!$("#table-to-date").val()) {
+          $("#table-to-date").val("2024-01-01");
+        }
+
         initializeDataTable();
       }
     });
@@ -1032,6 +1478,9 @@ Operational Dashboard{% endblock %} {% block additional_head %}
     let sortingApplied = false;
     let sortClickCount = {}; // Track clicks per column for 3-state sorting
 
+    // Global variable for table search state
+    let tableSearchEnabled = false;
+
     // Cache for summary data
     let summaryDataCache = null;
     let summaryChartsLoaded = false;
@@ -1048,6 +1497,9 @@ Operational Dashboard{% endblock %} {% block additional_head %}
 
       // Set up event handlers
       setupEventHandlers();
+
+      // Set up date range validation
+      setupDateRangeValidation();
     }
 
     function loadSummaryData() {
@@ -1094,6 +1546,7 @@ Operational Dashboard{% endblock %} {% block additional_head %}
     // Modify the loadChart function to handle callback for error cases too
     function loadChart(chartId, endpoint, params = {}, callback) {
       $(`#${chartId}-loading`).show();
+      setControlsDisabled(true);
 
       $.ajax({
         url: endpoint,
@@ -1112,6 +1565,7 @@ Operational Dashboard{% endblock %} {% block additional_head %}
           }
 
           $(`#${chartId}-loading`).hide();
+          setControlsDisabled(false);
 
           if (typeof callback === "function") {
             callback();
@@ -1123,6 +1577,7 @@ Operational Dashboard{% endblock %} {% block additional_head %}
           $(`#${chartId}-chart`).html(
             `<div class="flex h-full items-center justify-center text-gray-500">Error loading chart. Please try again.</div>`
           );
+          setControlsDisabled(false);
 
           if (typeof callback === "function") {
             callback(error);
@@ -1155,21 +1610,38 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       const layout = {
         title: "Daily Coil Production",
         xaxis: {
-          title: "Date",
+          title: {
+            text: "Date",
+            standoff: 15,
+          },
           tickangle: 45,
         },
         yaxis: {
           title: "Number of Coils",
+          automargin: true,
         },
         plot_bgcolor: "rgba(242, 244, 247, 1)",
         paper_bgcolor: "white",
         height: 300,
-        margin: { l: 40, r: 40, t: 40, b: 40 },
+        margin: { l: 50, r: 30, t: 40, b: 60 },
+        modebar: {
+          orientation: "h",
+          bgcolor: "rgba(255,255,255,0.7)",
+          position: "top-right",
+        },
       };
 
       Plotly.newPlot(`${chartId}-chart`, [trace], layout, {
-        displayModeBar: false,
+        displayModeBar: true,
+        displaylogo: false,
         responsive: true,
+        modeBarButtonsToRemove: [
+          "lasso2d",
+          "select2d",
+          "zoomIn2d",
+          "zoomOut2d",
+          "autoScale2d",
+        ],
       });
     }
 
@@ -1225,157 +1697,296 @@ Operational Dashboard{% endblock %} {% block additional_head %}
         height: 300,
         margin: { l: 20, r: 20, t: 40, b: 20 },
         plot_bgcolor: "white",
+        modebar: {
+          orientation: "h",
+          bgcolor: "rgba(255,255,255,0.7)",
+          position: "top-right",
+        },
       };
 
       Plotly.newPlot(`${chartId}-chart`, [trace], layout, {
-        displayModeBar: false,
+        displayModeBar: true,
+        displaylogo: false,
         responsive: true,
+        modeBarButtonsToRemove: [
+          "lasso2d",
+          "select2d",
+          "zoomIn2d",
+          "zoomOut2d",
+          "autoScale2d",
+        ],
       });
     }
 
-    function renderCoilAnalysisChart(data, chartId) {
-      if (!data.dates || data.dates.length === 0) {
-        $(`#${chartId}-chart`).html(
-          '<div class="flex h-full items-center justify-center text-gray-500">No coil analysis data available</div>'
-        );
-        return;
+    // Update the renderCoilAnalysisChart function to fix the right side overflow
+    // Update the renderCoilAnalysisChart function to handle both aggregated and detailed views
+function renderCoilAnalysisChart(data, chartId) {
+  if (!data.dates || data.dates.length === 0) {
+    $(`#${chartId}-chart`).html(
+      '<div class="flex h-full items-center justify-center text-gray-500">No coil analysis data available</div>'
+    );
+    return;
+  }
+
+  const traces = [];
+  let layout = {};
+
+  if (data.chartType === 'detailed') {
+    // Single day view: Show individual coil data with time
+    traces.push(
+      {
+        x: data.dates,
+        y: data.planThickness,
+        name: "Planned Thickness",
+        line: { color: "#1f77b4", width: 2 },
+        mode: "lines+markers",
+        hovertemplate:
+          "<b>Serial No:</b> %{customdata}<br>" +
+          "<b>Time:</b> %{x}<br>" +
+          "<b>Planned Thickness:</b> %{y:.2f} mm<extra></extra>",
+        customdata: data.serialNumbers,
+      },
+      {
+        x: data.dates,
+        y: data.finalThk,
+        name: "Final Thickness",
+        line: { color: "#ff7f0e", width: 2 },
+        mode: "lines+markers",
+        hovertemplate:
+          "<b>Serial No:</b> %{customdata}<br>" +
+          "<b>Time:</b> %{x}<br>" +
+          "<b>Final Thickness:</b> %{y:.2f} mm<extra></extra>",
+        customdata: data.serialNumbers,
+      },
+      {
+        x: data.dates,
+        y: data.planWidth,
+        name: "Planned Width",
+        line: { color: "#2ca02c", width: 2 },
+        mode: "lines+markers",
+        yaxis: "y2",
+        hovertemplate:
+          "<b>Serial No:</b> %{customdata}<br>" +
+          "<b>Time:</b> %{x}<br>" +
+          "<b>Planned Width:</b> %{y:.0f} mm<extra></extra>",
+        customdata: data.serialNumbers,
+      },
+      {
+        x: data.dates,
+        y: data.finalWidth,
+        name: "Final Width",
+        line: { color: "#d62728", width: 2 },
+        mode: "lines+markers",
+        yaxis: "y2",
+        hovertemplate:
+          "<b>Serial No:</b> %{customdata}<br>" +
+          "<b>Time:</b> %{x}<br>" +
+          "<b>Final Width:</b> %{y:.0f} mm<extra></extra>",
+        customdata: data.serialNumbers,
       }
+    );
 
-      const traces = [
-        // Thickness comparison
-        {
-          x: data.dates,
-          y: data.planThickness,
-          name: "Planned Thickness",
-          line: { color: "#1f77b4", width: 2 },
-          mode: "lines+markers",
-          hovertemplate:
-            "<b>Product:</b> %{customdata}<br>" +
-            "<b>Date:</b> %{x}<br>" +
-            "<b>Planned Thickness:</b> %{y:.2f} mm<extra></extra>",
-          customdata: data.products,
+    layout = {
+      title: "Detailed Coil Production Analysis (Single Day)",
+      xaxis: {
+        title: {
+          text: "Time",
+          standoff: 25,
         },
-        {
-          x: data.dates,
-          y: data.finalThk,
-          name: "Final Thickness",
-          line: { color: "#ff7f0e", width: 2 },
-          mode: "lines+markers",
-          hovertemplate:
-            "<b>Product:</b> %{customdata}<br>" +
-            "<b>Date:</b> %{x}<br>" +
-            "<b>Final Thickness:</b> %{y:.2f} mm<extra></extra>",
-          customdata: data.products,
-        },
-        // Width comparison
-        {
-          x: data.dates,
-          y: data.planWidth,
-          name: "Planned Width",
-          line: { color: "#2ca02c", width: 2 },
-          mode: "lines+markers",
-          yaxis: "y2",
-          hovertemplate:
-            "<b>Product:</b> %{customdata}<br>" +
-            "<b>Date:</b> %{x}<br>" +
-            "<b>Planned Width:</b> %{y:.0f} mm<extra></extra>",
-          customdata: data.products,
-        },
-        {
-          x: data.dates,
-          y: data.finalWidth,
-          name: "Final Width",
-          line: { color: "#d62728", width: 2 },
-          mode: "lines+markers",
-          yaxis: "y2",
-          hovertemplate:
-            "<b>Product:</b> %{customdata}<br>" +
-            "<b>Date:</b> %{x}<br>" +
-            "<b>Final Width:</b> %{y:.0f} mm<extra></extra>",
-          customdata: data.products,
-        },
-      ];
+        tickangle: 45,
+        tickformat: "%H:%M",
+        tickfont: { size: 10 },
+        type: "date",
+        automargin: true,
+      },
+      yaxis: {
+        title: "Thickness (mm)",
+        side: "left",
+        showgrid: true,
+        gridcolor: "rgba(0,0,0,0.1)",
+        automargin: true,
+      },
+      yaxis2: {
+        title: "Width (mm)",
+        side: "right",
+        overlaying: "y",
+        showgrid: false,
+        gridcolor: "rgba(0,0,0,0.1)",
+        automargin: true,
+      },
+    };
+  } else if (data.chartType === 'aggregated') {
+    // Multiple days view: Show aggregated data (no coil count bars, only in hover)
+    traces.push(
+      {
+        x: data.dates,
+        y: data.planThickness,
+        name: "Avg Planned Thickness",
+        line: { color: "#1f77b4", width: 3 },
+        mode: "lines+markers",
+        marker: { size: 8 },
+        hovertemplate:
+          "<b>Date:</b> %{x}<br>" +
+          "<b>Avg Planned Thickness:</b> %{y:.2f} mm<br>" +
+          "<b>Coils Produced:</b> %{customdata}<extra></extra>",
+        customdata: data.coilCounts,
+      },
+      {
+        x: data.dates,
+        y: data.finalThk,
+        name: "Avg Final Thickness",
+        line: { color: "#ff7f0e", width: 3 },
+        mode: "lines+markers",
+        marker: { size: 8 },
+        hovertemplate:
+          "<b>Date:</b> %{x}<br>" +
+          "<b>Avg Final Thickness:</b> %{y:.2f} mm<br>" +
+          "<b>Coils Produced:</b> %{customdata}<extra></extra>",
+        customdata: data.coilCounts,
+      },
+      {
+        x: data.dates,
+        y: data.planWidth,
+        name: "Avg Planned Width",
+        line: { color: "#2ca02c", width: 3 },
+        mode: "lines+markers",
+        marker: { size: 8 },
+        yaxis: "y2",
+        hovertemplate:
+          "<b>Date:</b> %{x}<br>" +
+          "<b>Avg Planned Width:</b> %{y:.0f} mm<br>" +
+          "<b>Coils Produced:</b> %{customdata}<extra></extra>",
+        customdata: data.coilCounts,
+      },
+      {
+        x: data.dates,
+        y: data.finalWidth,
+        name: "Avg Final Width",
+        line: { color: "#d62728", width: 3 },
+        mode: "lines+markers",
+        marker: { size: 8 },
+        yaxis: "y2",
+        hovertemplate:
+          "<b>Date:</b> %{x}<br>" +
+          "<b>Avg Final Width:</b> %{y:.0f} mm<br>" +
+          "<b>Coils Produced:</b> %{customdata}<extra></extra>",
+        customdata: data.coilCounts,
+      }
+    );
 
-      const layout = {
-        title: "Coil Production Analysis",
-        xaxis: {
-          title: "Date and Time",
-          tickangle: 45,
-          tickformat: "%Y-%m-%d",
-          tickfont: { size: 10 },
-          type: "date",
+    layout = {
+      title: "Aggregated Coil Production Analysis (Multiple Days)",
+      xaxis: {
+        title: {
+          text: "Date",
+          standoff: 25,
         },
-        yaxis: {
-          title: "Thickness (mm)",
-          side: "left",
-          showgrid: true,
-          gridcolor: "rgba(0,0,0,0.1)",
-        },
-        yaxis2: {
-          title: "Width (mm)",
-          side: "right",
-          overlaying: "y",
-          showgrid: false,
-          gridcolor: "rgba(0,0,0,0.1)",
-        },
-        legend: {
-          orientation: "h",
-          yanchor: "bottom",
-          y: 1.02,
-          xanchor: "right",
-          x: 1,
-        },
-        hovermode: "closest",
-        plot_bgcolor: "rgba(240, 240, 240, 0.8)",
-        height: 500,
-        margin: { l: 50, r: 50, t: 80, b: 50 },
-      };
+        tickangle: 45,
+        tickformat: "%Y-%m-%d",
+        tickfont: { size: 10 },
+        type: "date",
+        automargin: true,
+      },
+      yaxis: {
+        title: "Avg Thickness (mm)",
+        side: "left",
+        showgrid: true,
+        gridcolor: "rgba(0,0,0,0.1)",
+        automargin: true,
+      },
+      yaxis2: {
+        title: "Avg Width (mm)",
+        side: "right",
+        overlaying: "y",
+        showgrid: false,
+        gridcolor: "rgba(0,0,0,0.1)",
+        automargin: true,
+      },
+    };
+  }
 
-      Plotly.newPlot(`${chartId}-chart`, traces, layout, {
-        responsive: true,
-      });
-    }
+  // Common layout properties
+  layout = {
+    ...layout,
+    legend: {
+      orientation: "h",
+      yanchor: "bottom",
+      y: 1.02,
+      xanchor: "right",
+      x: 1,
+    },
+    hovermode: "closest",
+    plot_bgcolor: "rgba(240, 240, 240, 0.8)",
+    height: 500,
+    margin: { l: 60, r: 80, t: 80, b: 80 },
+    modebar: {
+      orientation: "h",
+      bgcolor: "rgba(255,255,255,0.7)",
+      activecolor: "#1f77b4",
+      position: "top-right",
+    },
+    autosize: true,
+  };
+
+  const config = {
+    responsive: true,
+    displayModeBar: true,
+    displaylogo: false,
+    modeBarButtonsToRemove: ["lasso2d", "select2d", "autoScale2d"],
+    toImageButtonOptions: {
+      format: "png",
+      filename: "coil_production_analysis",
+      height: 500,
+      width: 1200,
+      scale: 2,
+    },
+  };
+
+  Plotly.newPlot(`${chartId}-chart`, traces, layout, config);
+
+  // Add a resize handler to ensure the chart fits properly
+  window.addEventListener("resize", function () {
+    Plotly.relayout(`${chartId}-chart`, {
+      "xaxis.automargin": true,
+      "yaxis.automargin": true,
+      "yaxis2.automargin": true,
+    });
+  });
+}
 
     // Update the loadAnalysisData function
-    function loadAnalysisData() {
-      const fromDate = $("#analysis-from-date").val();
-      const toDate = $("#analysis-to-date").val();
-      const product = $("#analysis-product").val();
+    // Update the loadAnalysisData function
+function loadAnalysisData() {
+  const fromDate = $("#analysis-from-date").val();
+  const toDate = $("#analysis-to-date").val();
+  const product = $("#analysis-product").val();
 
-      // Check if any filters are applied
-      if (!fromDate && !toDate && !product) {
-        // No filters applied, show default message and clear chart
-        $("#coil-analysis-chart").html(
-          '<div class="flex h-full items-center justify-center text-gray-500">Please apply filters to view the analysis chart.</div>'
-        );
-        $("#coil-analysis-loading").hide();
-        return;
+  // Always load data if we have from/to dates (including defaults)
+  if (fromDate || toDate || product) {
+    setControlsDisabled(true);
+    $("#coil-analysis-loading").show();
+    $("#analysis-default-message").hide();
+
+    loadChart(
+      "coil-analysis",
+      "/production_overview/coil_analysis_chart",
+      {
+        from_date: fromDate,
+        to_date: toDate,
+        product: product,
+      },
+      function () {
+        setControlsDisabled(false);
       }
-
-      // Disable buttons during loading
-      $(
-        "#apply-analysis-filters, #reset-analysis-filters, #export-analysis-data"
-      ).prop("disabled", true);
-
-      $("#coil-analysis-loading").show();
-      $("#analysis-default-message").hide();
-
-      loadChart(
-        "coil-analysis",
-        "/production_overview/coil_analysis_chart",
-        {
-          from_date: fromDate,
-          to_date: toDate,
-          product: product,
-        },
-        function () {
-          // Re-enable buttons after loading completes
-          $(
-            "#apply-analysis-filters, #reset-analysis-filters, #export-analysis-data"
-          ).prop("disabled", false);
-        }
-      );
-    }
+    );
+  } else {
+    // Only show the message if no filters are applied at all
+    $("#coil-analysis-chart").html(
+      '<div class="flex h-full items-center justify-center text-gray-500">Please apply filters to view the analysis chart.</div>'
+    );
+    $("#coil-analysis-loading").hide();
+  }
+}
 
     // Update the update3DVisualization function
     function update3DVisualization() {
@@ -1386,13 +1997,9 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       const visualizationType = $("#visualization-type").val();
       const fromDate = $("#viz-from-date").val();
       const toDate = $("#viz-to-date").val();
+      const productFilter = $("#viz-product-filter").val(); // New product filter
 
-      // Disable buttons during loading
-      $("#update-3d-visualization, #export-3d-visualization").prop(
-        "disabled",
-        true
-      );
-
+      setControlsDisabled(true);
       $("#visualization-3d-loading").show();
 
       $.ajax({
@@ -1406,18 +2013,14 @@ Operational Dashboard{% endblock %} {% block additional_head %}
           visualization_type: visualizationType,
           from_date: fromDate,
           to_date: toDate,
+          product_filter: productFilter, // Include product filter
         },
         success: function (response) {
           if (response.visualization_3d) {
             $("#visualization-3d").html(response.visualization_3d);
           }
           $("#visualization-3d-loading").hide();
-
-          // Re-enable buttons after loading completes
-          $("#update-3d-visualization, #export-3d-visualization").prop(
-            "disabled",
-            false
-          );
+          setControlsDisabled(false);
         },
         error: function (xhr, status, error) {
           console.error("Error loading 3D visualization:", error);
@@ -1425,49 +2028,45 @@ Operational Dashboard{% endblock %} {% block additional_head %}
           $("#visualization-3d").html(
             `<div class="flex h-full items-center justify-center text-gray-500">Error loading visualization. Please try again.</div>`
           );
-
-          // Re-enable buttons after error
-          $("#update-3d-visualization, #export-3d-visualization").prop(
-            "disabled",
-            false
-          );
+          setControlsDisabled(false);
         },
       });
     }
 
     // Update the loadTableData function
     function loadTableData() {
-      const serialNo = $("#table-serial-no").val();
       const fromDate = $("#table-from-date").val();
       const toDate = $("#table-to-date").val();
       const product = $("#table-product").val();
       const status = $("#table-status").val();
+  
+      // Get column search filters from table headers
+      const columnSearchFilters = getColumnSearchFilters();
 
-      // Disable buttons during loading
-      $(
-        "#apply-table-filters, #reset-table-filters, #export-table-data, #clear-sorting"
-      ).prop("disabled", true);
-      $(".sort-button").addClass("pointer-events-none opacity-60");
+      setControlsDisabled(true);
 
       // Show loading indicator
       $("#table-body").html(
         '<tr><td colspan="100%" class="px-3 py-4 text-center text-gray-500">Loading data...</td></tr>'
       );
 
+      // Prepare data object
+      const requestData = {
+        from_date: fromDate,
+        to_date: toDate,
+        product: product,
+        status: status,
+        page: currentPage,
+        limit: itemsPerPage,
+        sort_by: currentSortParam,
+        sort_direction: currentSortDirection,
+        column_search: JSON.stringify(columnSearchFilters)
+      };
+
       $.ajax({
         url: "/production_overview/table_data",
         method: "GET",
-        data: {
-          serial_no: serialNo,
-          from_date: fromDate,
-          to_date: toDate,
-          product: product,
-          status: status,
-          page: currentPage,
-          limit: itemsPerPage,
-          sort_by: currentSortParam,
-          sort_direction: currentSortDirection,
-        },
+        data: requestData,
         success: function (response) {
           tableData = response.data;
           totalPages = Math.ceil(response.total / itemsPerPage);
@@ -1481,24 +2080,14 @@ Operational Dashboard{% endblock %} {% block additional_head %}
 
           // Update table with data
           updateTableWithData(tableData);
-
-          // Re-enable buttons after loading completes
-          $(
-            "#apply-table-filters, #reset-table-filters, #export-table-data, #clear-sorting"
-          ).prop("disabled", false);
-          $(".sort-button").removeClass("pointer-events-none opacity-60");
+          setControlsDisabled(false);
         },
         error: function (xhr, status, error) {
           console.error("Error loading table data:", error);
           $("#table-body").html(
             '<tr><td colspan="100%" class="px-3 py-4 text-center text-red-500">Error loading data. Please try again.</td></tr>'
           );
-
-          // Re-enable buttons after error
-          $(
-            "#apply-table-filters, #reset-table-filters, #export-table-data, #clear-sorting"
-          ).prop("disabled", false);
-          $(".sort-button").removeClass("pointer-events-none opacity-60");
+          setControlsDisabled(false);
         },
       });
     }
@@ -1583,55 +2172,95 @@ Operational Dashboard{% endblock %} {% block additional_head %}
               : "";
           const activeClass = column.field === currentSortParam ? "active" : "";
 
-          header.append(`
-        <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sortable-header" data-field="${column.field}">
-          ${column.title}
-          <span class="sort-indicator ${sortClass} ${activeClass}"></span>
+      // Create header cell with integrated search
+      const headerCell = $(`
+        <th scope="col" class="table-header-cell" data-field="${column.field}">
+          <div class="header-content">
+            <div class="header-title sortable-header" data-field="${column.field}">
+              ${column.title}
+              <span class="sort-indicator ${sortClass} ${activeClass}"></span>
+            </div>
+            ${tableSearchEnabled ? `
+              <div class="header-search-container">
+                <input 
+                  type="text" 
+                  class="header-search column-search-input" 
+                  data-field="${column.field}"
+                  placeholder="Type and press Enter..."
+                />
+                <button type="button" class="clear-search" data-field="${column.field}">×</button>
+              </div>
+            ` : ''}
+          </div>
         </th>
       `);
-        }
-      });
 
-      // Add click handlers to sortable headers
-      $(".sortable-header").on("click", function () {
-        const field = $(this).data("field");
-
-        // Initialize click count if not exists
-        if (!sortClickCount[field]) {
-          sortClickCount[field] = 0;
-        }
-
-        // Increment click count for this column
-        sortClickCount[field]++;
-
-        // Reset other columns' click counts
-        Object.keys(sortClickCount).forEach((key) => {
-          if (key !== field) sortClickCount[key] = 0;
-        });
-
-        // Three-state toggle: asc -> desc -> default
-        if (sortClickCount[field] === 1) {
-          // First click: sort ascending
-          currentSortParam = field;
-          currentSortDirection = "asc";
-          sortingApplied = true;
-        } else if (sortClickCount[field] === 2) {
-          // Second click: sort descending
-          currentSortParam = field;
-          currentSortDirection = "desc";
-          sortingApplied = true;
-        } else {
-          // Third click: reset to default
-          currentSortParam = "slNo";
-          currentSortDirection = "asc";
-          sortingApplied = false;
-          sortClickCount[field] = 0;
-        }
-
-        // Reload data with new sorting
-        loadTableData();
-      });
+      header.append(headerCell);
     }
+  });
+
+  // Add click handlers to sortable headers
+  $(".sortable-header").on("click", function () {
+    const field = $(this).data("field");
+
+    // Initialize click count if not exists
+    if (!sortClickCount[field]) {
+      sortClickCount[field] = 0;
+    }
+
+    // Increment click count for this column
+    sortClickCount[field]++;
+
+    // Reset other columns' click counts
+    Object.keys(sortClickCount).forEach((key) => {
+      if (key !== field) sortClickCount[key] = 0;
+    });
+
+    // Three-state toggle: asc -> desc -> default
+    if (sortClickCount[field] === 1) {
+      // First click: sort ascending
+      currentSortParam = field;
+      currentSortDirection = "asc";
+      sortingApplied = true;
+    } else if (sortClickCount[field] === 2) {
+      // Second click: sort descending
+      currentSortParam = field;
+      currentSortDirection = "desc";
+      sortingApplied = true;
+    } else {
+      // Third click: reset to default
+      currentSortParam = "slNo";
+      currentSortDirection = "asc";
+      sortingApplied = false;
+      sortClickCount[field] = 0;
+    }
+
+    // Reload data with new sorting
+    loadTableData();
+  });
+
+  // Add event listeners for column search inputs
+  if (tableSearchEnabled) {
+    // Change from 'input' event to 'keypress' event to detect Enter key
+    $(".column-search-input").on("keypress", function(e) {
+      if (e.which === 13) { // Enter key pressed
+        applyColumnSearch();
+      }
+    });
+
+    // Also add blur event for when user clicks away from input
+    $(".column-search-input").on("blur", function() {
+      applyColumnSearch();
+    });
+
+    // Add clear search button functionality
+    $(".clear-search").on("click", function() {
+      const field = $(this).data("field");
+      $(`.column-search-input[data-field="${field}"]`).val('');
+      applyColumnSearch();
+    });
+  }
+}
 
     function updateTableWithData(data) {
       const tbody = $("#table-body");
@@ -1715,8 +2344,10 @@ Operational Dashboard{% endblock %} {% block additional_head %}
           productOptions = response.products || [];
           statusOptions = response.statuses || [];
 
-          // Populate product dropdowns
-          const productSelects = $("#analysis-product, #table-product");
+          // Populate product dropdowns (including the new 3D viz product filter)
+          const productSelects = $(
+            "#analysis-product, #table-product, #viz-product-filter"
+          );
           productSelects.empty();
           productSelects.append('<option value="">All Products</option>');
 
@@ -1787,14 +2418,13 @@ Operational Dashboard{% endblock %} {% block additional_head %}
 
       // Reset analysis filters
       $("#reset-analysis-filters").on("click", function () {
-        $("#analysis-from-date").val("");
-        $("#analysis-to-date").val("");
+        // Set default date range instead of clearing
+        $("#analysis-from-date").val("2023-11-30");
+        $("#analysis-to-date").val("2024-01-01");
         $("#analysis-product").val("");
 
-        // Reset the chart to default state
-        $("#coil-analysis-chart").html(
-          '<div class="flex h-full items-center justify-center text-gray-500">Please apply filters to view the analysis chart.</div>'
-        );
+        // Load data with default filters
+        loadAnalysisData();
       });
 
       // 3D visualization update
@@ -1808,20 +2438,26 @@ Operational Dashboard{% endblock %} {% block additional_head %}
         loadTableData();
       });
 
-      // Reset table filters
+      // Reset table filters - also clear column search
       $("#reset-table-filters").on("click", function () {
-        $("#table-serial-no").val("");
         $("#table-from-date").val("");
         $("#table-to-date").val("");
         $("#table-product").val("");
         $("#table-status").val("");
+  
+        // Clear column search inputs
+        $(".column-search-input").val("");
+  
         currentPage = 1;
         loadTableData();
       });
 
-      // Sort buttons
-
-      // Clear sorting
+      // Table search toggle
+      $("#enable-table-search").on("change", function() {
+        tableSearchEnabled = $(this).is(":checked");
+        generateTableHeader();
+        updateTableWithData(tableData);
+      });
 
       // Pagination handlers
       $("#items-per-page").on("change", function () {
@@ -1903,6 +2539,63 @@ Operational Dashboard{% endblock %} {% block additional_head %}
       });
     }
 
+    // Add these new functions for integrated table search:
+
+    function applyColumnSearch() {
+      currentPage = 1; // Reset to first page when searching
+      loadTableData();
+    }
+
+    function getColumnSearchFilters() {
+      const filters = {};
+      $(".column-search-input").each(function() {
+        const field = $(this).data("field");
+        const value = $(this).val().trim();
+        if (value) {
+          filters[field] = value;
+        }
+      });
+      return filters;
+    }
+
+    // Debounce function to limit API calls while typing
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    // Add date range validation for Production Analysis tab
+    // Remove the date range validation for Production Analysis tab
+function setupDateRangeValidation() {
+  // Date range validation removed - users can now select any date range
+  // The chart will automatically adapt to show aggregated or detailed view
+}
+
+    function showNotification(message, type = "info") {
+      const notification = $("#notification");
+
+      // Set message and type
+      notification.text(message);
+      notification.removeClass("info warning error success").addClass(type);
+
+      // Show notification
+      notification.css("display", "block");
+      setTimeout(() => notification.addClass("show"), 10);
+
+      // Hide after 3 seconds
+      setTimeout(() => {
+        notification.removeClass("show");
+        setTimeout(() => notification.css("display", "none"), 300);
+      }, 3000);
+    }
+
     function exportData(type) {
       let url = "/export_data?type=" + type;
 
@@ -1922,19 +2615,19 @@ Operational Dashboard{% endblock %} {% block additional_head %}
         const visualizationType = $("#visualization-type").val();
         const fromDate = $("#viz-from-date").val();
         const toDate = $("#viz-to-date").val();
+        const productFilter = $("#viz-product-filter").val(); // Include product filter
 
         url += `&x_axis=${xAxis}&y_axis=${yAxis}&z_axis=${zAxis}&color_by=${colorBy}&visualization_type=${visualizationType}`;
 
         if (fromDate) url += `&from_date=${fromDate}`;
         if (toDate) url += `&to_date=${toDate}`;
+        if (productFilter) url += `&product_filter=${productFilter}`;
       } else if (type === "table") {
-        const serialNo = $("#table-serial-no").val();
         const fromDate = $("#table-from-date").val();
         const toDate = $("#table-to-date").val();
         const product = $("#table-product").val();
         const status = $("#table-status").val();
 
-        if (serialNo) url += `&serial_no=${serialNo}`;
         if (fromDate) url += `&from_date=${fromDate}`;
         if (toDate) url += `&to_date=${toDate}`;
         if (product) url += `&product=${product}`;
@@ -1948,6 +2641,55 @@ Operational Dashboard{% endblock %} {% block additional_head %}
 
       window.location.href = url;
     }
+
+    // Add this function after the global variables section
+function setControlsDisabled(disabled) {
+  // Disable/enable all filter inputs and buttons
+  const controls = [
+    // Analysis tab controls
+    '#analysis-from-date', '#analysis-to-date', '#analysis-product',
+    '#apply-analysis-filters', '#reset-analysis-filters', '#export-analysis-data',
+    
+    // 3D visualization controls
+    '#viz-from-date', '#viz-to-date', '#viz-product-filter',
+    '#x-axis', '#y-axis', '#z-axis', '#color-by', '#visualization-type',
+    '#update-3d-visualization', '#export-3d-visualization',
+    
+    // Table controls
+    '#table-from-date', '#table-to-date', 
+    '#table-product', '#table-status',
+    '#apply-table-filters', '#reset-table-filters', '#export-table-data',
+    
+    // Pagination controls
+    '#items-per-page', '#prev-page', '#next-page', '#current-page',
+    
+    // Column controls
+    '#column-selector-btn', '#select-all-columns', '#deselect-all-columns',
+    '.column-toggle', '#enable-table-search',
+    
+    // Column search inputs
+    '.column-search-input',
+    
+    // Chart refresh buttons
+    '.refresh-chart', '.expand-chart'
+  ];
+  
+  controls.forEach(selector => {
+    $(selector).prop('disabled', disabled);
+    if (disabled) {
+      $(selector).addClass('opacity-50 cursor-not-allowed');
+    } else {
+      $(selector).removeClass('opacity-50 cursor-not-allowed');
+    }
+  });
+  
+  // Also disable sortable headers
+  if (disabled) {
+    $('.sortable-header').addClass('pointer-events-none opacity-60');
+  } else {
+    $('.sortable-header').removeClass('pointer-events-none opacity-60');
+  }
+}
   });
 </script>
 {% endblock %}

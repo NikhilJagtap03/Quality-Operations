@@ -108,61 +108,100 @@ def get_daily_production_chart():
 
 @production_overview.route('/production_overview/coil_analysis_chart')
 def get_coil_analysis_chart():
-  if db is None:
-      return jsonify({'error': 'Database connection error'}), 500
-      
-  try:
-      # Get filter parameters
-      from_date = request.args.get('from_date')
-      to_date = request.args.get('to_date')
-      product = request.args.get('product')
-      
-      # Build query
-      query = {}
-      if from_date and to_date:
-          query['clearanceDate'] = {
-              '$gte': from_date,
-              '$lte': to_date
-          }
-      if product:
-          query['product'] = product
-      
-      # Fetch filtered coil data
-      coil_data = list(db.coil_production.find(query, {
-          '_id': 0,
-          'clearanceDate': 1,
-          'planThickness': 1,
-          'finalThk': 1,
-          'planWidth': 1,
-          'finalWidth': 1,
-          'finalWeight': 1,
-          'product': 1
-      }))
-      
-      # Process data for chart
-      df = pd.DataFrame(coil_data)
-      
-      # If no data, return empty result
-      if df.empty:
-          return jsonify({'dates': [], 'planThickness': [], 'finalThk': [], 'planWidth': [], 'finalWidth': []})
-      
-      # Convert clearanceDate to datetime and sort
-      df['clearanceDate'] = pd.to_datetime(df['clearanceDate'])
-      df = df.sort_values('clearanceDate')
-      
-      # Convert dates to strings for JSON serialization
-      dates = [d.strftime('%Y-%m-%d %H:%M:%S') for d in df['clearanceDate']]
-      
-      return jsonify({
-          'dates': dates,
-          'planThickness': df['planThickness'].tolist(),
-          'finalThk': df['finalThk'].tolist(),
-          'planWidth': df['planWidth'].tolist(),
-          'finalWidth': df['finalWidth'].tolist(),
-          'products': df['product'].tolist() if 'product' in df.columns else []
-      })
-  except Exception as e:
-      return jsonify({'error': str(e)}), 500
+    if db is None:
+        return jsonify({'error': 'Database connection error'}), 500
+        
+    try:
+        # Get filter parameters
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
+        product = request.args.get('product')
+        
+        # Build query
+        query = {}
+        if from_date and to_date:
+            query['clearanceDate'] = {
+                '$gte': from_date,
+                '$lte': to_date
+            }
+        if product:
+            query['product'] = product
+        
+        # Fetch filtered coil data
+        coil_data = list(db.coil_production.find(query, {
+            '_id': 0,
+            'clearanceDate': 1,
+            'planThickness': 1,
+            'finalThk': 1,
+            'planWidth': 1,
+            'finalWidth': 1,
+            'finalWeight': 1,
+            'product': 1,
+            'serialNo': 1
+        }))
+        
+        # Process data for chart
+        df = pd.DataFrame(coil_data)
+        
+        # If no data, return empty result
+        if df.empty:
+            return jsonify({
+                'dates': [], 
+                'planThickness': [], 
+                'finalThk': [], 
+                'planWidth': [], 
+                'finalWidth': [],
+                'coilCounts': [],
+                'chartType': 'empty'
+            })
+        
+        # Convert clearanceDate to datetime and sort
+        df['clearanceDate'] = pd.to_datetime(df['clearanceDate'])
+        df = df.sort_values('clearanceDate')
+        
+        # Determine if this is single day or multiple days
+        df['date_only'] = df['clearanceDate'].dt.date
+        unique_dates = df['date_only'].nunique()
+        
+        if unique_dates == 1:
+            # Single day: Show individual coil data with time
+            dates = [d.strftime('%Y-%m-%d %H:%M:%S') for d in df['clearanceDate']]
+            
+            return jsonify({
+                'dates': dates,
+                'planThickness': df['planThickness'].tolist(),
+                'finalThk': df['finalThk'].tolist(),
+                'planWidth': df['planWidth'].tolist(),
+                'finalWidth': df['finalWidth'].tolist(),
+                'serialNumbers': df['serialNo'].tolist() if 'serialNo' in df.columns else [],
+                'chartType': 'detailed'
+            })
+        else:
+            # Multiple days: Show aggregated data by date
+            daily_stats = df.groupby('date_only').agg({
+                'planThickness': 'mean',
+                'finalThk': 'mean',
+                'planWidth': 'mean',
+                'finalWidth': 'mean',
+                'serialNo': 'count'  # Count of coils per day
+            }).reset_index()
+            
+            daily_stats = daily_stats.sort_values('date_only')
+            
+            # Convert dates to strings for JSON serialization
+            dates = [d.strftime('%Y-%m-%d') for d in daily_stats['date_only']]
+            
+            return jsonify({
+                'dates': dates,
+                'planThickness': daily_stats['planThickness'].tolist(),
+                'finalThk': daily_stats['finalThk'].tolist(),
+                'planWidth': daily_stats['planWidth'].tolist(),
+                'finalWidth': daily_stats['finalWidth'].tolist(),
+                'coilCounts': daily_stats['serialNo'].tolist(),
+                'chartType': 'aggregated'
+            })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @production_overview.route('/production_overview/visualization_3d')
 def get_3d_visualization():
@@ -178,6 +217,7 @@ def get_3d_visualization():
       visualization_type = request.args.get('visualization_type', 'scatter')
       from_date = request.args.get('from_date')
       to_date = request.args.get('to_date')
+      product_filter = request.args.get('product_filter')  # New product filter
       
       # Build query
       query = {}
@@ -191,16 +231,34 @@ def get_3d_visualization():
       elif to_date:
           query['clearanceDate'] = {'$lte': to_date}
       
-      # Fetch coil data
+      # Add product filter
+      if product_filter:
+          query['product'] = product_filter
+      
+      # Fetch coil data with all necessary fields
       projection = {'_id': 0}
       
-      # Make sure we include the required fields
-      for field in [x_axis, y_axis, z_axis, color_by, 'serialNo', 'product', 'finalStatus', 'clearanceDate']:
+      # Always include basic fields
+      basic_fields = [x_axis, y_axis, z_axis, color_by, 'serialNo', 'product', 'finalStatus', 'clearanceDate']
+      for field in basic_fields:
           if field:
               projection[field] = 1
       
+      # Always include planned vs final fields for comparison options
+      planned_final_fields = [
+          'planThickness', 'finalThk', 'planWidth', 'finalWidth', 
+          'orderYieldStrength', 'yieldStrength', 'orderElongation', 'elongation',
+          'orderHardness', 'hardness'
+      ]
+      for field in planned_final_fields:
+          projection[field] = 1
+      
       # Fetch all data matching the query
       coil_data = list(db.coil_production.find(query, projection))
+      
+      # Debug: Print first document to see available fields
+      if coil_data:
+          print(f"Sample document keys: {list(coil_data[0].keys())}")
       
       # Generate 3D visualization
       visualization_3d = generate_3d_visualization(
@@ -214,6 +272,7 @@ def get_3d_visualization():
       
       return jsonify({'visualization_3d': visualization_3d})
   except Exception as e:
+      print(f"3D visualization error: {str(e)}")
       return jsonify({'error': str(e)}), 500
 
 @production_overview.route('/production_overview/table_columns')
@@ -292,6 +351,13 @@ def get_table_data():
         product = request.args.get('product')
         status = request.args.get('status')
         
+        # Get column search filters
+        column_search_json = request.args.get('column_search', '{}')
+        try:
+            column_search = json.loads(column_search_json)
+        except:
+            column_search = {}
+        
         # Get pagination parameters
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 10))
@@ -313,6 +379,23 @@ def get_table_data():
             query['product'] = product
         if status:
             query['finalStatus'] = status
+        
+        # Add column search filters
+        for field, search_value in column_search.items():
+            if search_value and search_value.strip():
+                # Handle different field types
+                if field in ['slNo', 'age', 'finalWeight', 'finalThk', 'planThickness', 
+                           'finalWidth', 'planWidth', 'yieldStrength', 'elongation', 'hardness']:
+                    # Numeric fields - try exact match first, then partial
+                    try:
+                        numeric_value = float(search_value)
+                        query[field] = numeric_value
+                    except ValueError:
+                        # If not a number, treat as text search
+                        query[field] = {'$regex': str(search_value), '$options': 'i'}
+                else:
+                    # Text fields - case insensitive partial match
+                    query[field] = {'$regex': str(search_value), '$options': 'i'}
         
         # Count total documents matching the query
         total = db.coil_production.count_documents(query)
@@ -371,6 +454,13 @@ def export_data():
         status = request.args.get('status', None)
         export_type = request.args.get('type', 'table')
         
+        # Get column search filters for table export
+        column_search_json = request.args.get('column_search', '{}')
+        try:
+            column_search = json.loads(column_search_json)
+        except:
+            column_search = {}
+        
         # Get sorting parameters
         sort_by = request.args.get('sort_by', None)
         sort_direction = request.args.get('sort_direction', None)
@@ -381,6 +471,7 @@ def export_data():
         z_axis = request.args.get('z_axis', 'finalWeight')
         color_by = request.args.get('color_by', 'product')
         visualization_type = request.args.get('visualization_type', 'scatter')
+        product_filter = request.args.get('product_filter', None)
 
         # Build query
         query = {}
@@ -395,6 +486,28 @@ def export_data():
             query['product'] = product
         if status:
             query['finalStatus'] = status
+        
+        # Add product filter for 3D visualization
+        if export_type == '3d' and product_filter:
+            query['product'] = product_filter
+        
+        # Add column search filters for table export
+        if export_type == 'table':
+            for field, search_value in column_search.items():
+                if search_value and search_value.strip():
+                    # Handle different field types
+                    if field in ['slNo', 'age', 'finalWeight', 'finalThk', 'planThickness', 
+                               'finalWidth', 'planWidth', 'yieldStrength', 'elongation', 'hardness']:
+                        # Numeric fields - try exact match first, then partial
+                        try:
+                            numeric_value = float(search_value)
+                            query[field] = numeric_value
+                        except ValueError:
+                            # If not a number, treat as text search
+                            query[field] = {'$regex': str(search_value), '$options': 'i'}
+                    else:
+                        # Text fields - case insensitive partial match
+                        query[field] = {'$regex': str(search_value), '$options': 'i'}
         
         # Only apply sorting if sort parameters are provided
         if sort_by and sort_direction and export_type == 'table':
@@ -467,6 +580,14 @@ def export_data():
                 worksheet.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=5)
                 current_row += 1
             
+            # Add column search filters information
+            if export_type == 'table' and column_search:
+                search_info = "Column Searches: " + ", ".join([f"{field}='{value}'" for field, value in column_search.items()])
+                worksheet.cell(row=current_row, column=1, value=search_info)
+                worksheet.cell(row=current_row, column=1).font = openpyxl.styles.Font(italic=True)
+                worksheet.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=5)
+                current_row += 1
+            
             # Add sorting information row only for table exports with explicit sorting
             if export_type == 'table' and sort_by and sort_direction:
                 sort_info = f"Sorted by: {sort_by} ({sort_direction})"
@@ -478,6 +599,8 @@ def export_data():
             # Add 3D visualization parameters if applicable
             if export_type == '3d':
                 viz_info = f"3D Visualization: X-Axis={x_axis}, Y-Axis={y_axis}, Z-Axis={z_axis}, Color By={color_by}, Type={visualization_type}"
+                if product_filter:
+                    viz_info += f", Product Filter={product_filter}"
                 worksheet.cell(row=current_row, column=1, value=viz_info)
                 worksheet.cell(row=current_row, column=1).font = openpyxl.styles.Font(italic=True)
                 worksheet.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=5)
@@ -576,6 +699,22 @@ def generate_3d_visualization(data, x_axis='finalThk', y_axis='finalWidth', z_ax
         if param in df.columns:
             df[param] = pd.to_numeric(df[param], errors='coerce')
     
+    # Handle special color-by options for planned vs final comparisons
+    if color_by == 'planned_vs_final_thickness':
+        # Create a new column that shows the difference between planned and final thickness
+        if 'planThickness' in df.columns and 'finalThk' in df.columns:
+            df['thickness_difference'] = df['finalThk'] - df['planThickness']
+            color_by = 'thickness_difference'
+        else:
+            color_by = 'product'  # Fallback
+    elif color_by == 'planned_vs_final_width':
+        # Create a new column that shows the difference between planned and final width
+        if 'planWidth' in df.columns and 'finalWidth' in df.columns:
+            df['width_difference'] = df['finalWidth'] - df['planWidth']
+            color_by = 'width_difference'
+        else:
+            color_by = 'product'  # Fallback
+    
     # Drop rows with missing values in the selected parameters
     df = df.dropna(subset=[x_axis, y_axis, z_axis])
     
@@ -594,12 +733,19 @@ def generate_3d_visualization(data, x_axis='finalThk', y_axis='finalWidth', z_ax
         fig = create_3d_scatter(df, x_axis, y_axis, z_axis, color_by)
     
     # Update layout for better appearance
+    title_text = f'3D Visualization of Coil Parameters'
+    if color_by in ['thickness_difference', 'width_difference']:
+        if color_by == 'thickness_difference':
+            title_text += ' (Colored by Thickness Variance: Final - Planned)'
+        else:
+            title_text += ' (Colored by Width Variance: Final - Planned)'
+
     fig.update_layout(
-        title=f'3D Visualization of Coil Parameters',
+        title=title_text,
         scene=dict(
-            xaxis_title=x_axis,
-            yaxis_title=y_axis,
-            zaxis_title=z_axis,
+            xaxis_title=get_axis_title_with_units(x_axis),
+            yaxis_title=get_axis_title_with_units(y_axis),
+            zaxis_title=get_axis_title_with_units(z_axis),
             aspectmode='cube'
         ),
         margin=dict(l=0, r=0, b=0, t=40),
@@ -608,11 +754,35 @@ def generate_3d_visualization(data, x_axis='finalThk', y_axis='finalWidth', z_ax
     
     return fig.to_html(full_html=False, include_plotlyjs='cdn')
 
+def get_axis_title_with_units(axis_name):
+    """
+    Get axis title with appropriate units.
+    """
+    axis_units = {
+        'finalThk': 'Final Thickness (mm)',
+        'planThickness': 'Planned Thickness (mm)',
+        'finalWidth': 'Final Width (mm)',
+        'planWidth': 'Planned Width (mm)',
+        'finalWeight': 'Final Weight (kg)',
+        'yieldStrength': 'Yield Strength (MPa)',
+        'orderYieldStrength': 'Order Yield Strength (MPa)',
+        'elongation': 'Elongation (%)',
+        'orderElongation': 'Order Elongation (%)',
+        'hardness': 'Hardness (HV)',
+        'orderHardness': 'Order Hardness (HV)',
+        'age': 'Age (days)',
+        'oilerUsage': 'Oiler Usage (L)',
+        'planTdc': 'Planned TDC (mm)',
+        'finalTdc': 'Final TDC (mm)'
+    }
+    
+    return axis_units.get(axis_name, axis_name)
+
 def create_3d_scatter(df, x_axis, y_axis, z_axis, color_by):
     """Create a 3D scatter plot."""
     if color_by in df.columns:
         # If color_by is categorical
-        if df[color_by].dtype == 'object' or len(df[color_by].unique()) < 10:
+        if df[color_by].dtype == 'object' or (len(df[color_by].unique()) < 10 and color_by not in ['thickness_difference', 'width_difference']):
             fig = px.scatter_3d(
                 df, 
                 x=x_axis, 
@@ -621,23 +791,42 @@ def create_3d_scatter(df, x_axis, y_axis, z_axis, color_by):
                 color=color_by,
                 hover_name='serialNo' if 'serialNo' in df.columns else None,
                 hover_data=['product', 'finalStatus'] if all(col in df.columns for col in ['product', 'finalStatus']) else None,
-                opacity=0.7,
-                size_max=10
+                opacity=0.8,
+                size_max=12
             )
-        # If color_by is numerical
+        # If color_by is numerical (including our new difference columns)
         else:
+            # Use a diverging color scale for difference columns
+            if color_by in ['thickness_difference', 'width_difference']:
+                color_scale = 'RdYlBu_r'  # Red-Yellow-Blue reversed for better contrast
+                # Add custom hover data for difference columns
+                hover_data = ['product', 'finalStatus']
+                if color_by == 'thickness_difference' and all(col in df.columns for col in ['planThickness', 'finalThk']):
+                    hover_data.extend(['planThickness', 'finalThk'])
+                elif color_by == 'width_difference' and all(col in df.columns for col in ['planWidth', 'finalWidth']):
+                    hover_data.extend(['planWidth', 'finalWidth'])
+            else:
+                color_scale = 'Viridis'
+                hover_data = ['product', 'finalStatus'] if all(col in df.columns for col in ['product', 'finalStatus']) else None
+            
             fig = px.scatter_3d(
                 df, 
                 x=x_axis, 
                 y=y_axis, 
                 z=z_axis,
                 color=color_by,
-                color_continuous_scale=px.colors.sequential.Viridis,
+                color_continuous_scale=color_scale,
                 hover_name='serialNo' if 'serialNo' in df.columns else None,
-                hover_data=['product', 'finalStatus'] if all(col in df.columns for col in ['product', 'finalStatus']) else None,
-                opacity=0.7,
-                size_max=10
+                hover_data=hover_data,
+                opacity=0.8,
+                size_max=12
             )
+            
+            # Update colorbar title for difference columns
+            if color_by == 'thickness_difference':
+                fig.update_layout(coloraxis_colorbar_title="Thickness Variance (mm)")
+            elif color_by == 'width_difference':
+                fig.update_layout(coloraxis_colorbar_title="Width Variance (mm)")
     else:
         # If color_by column doesn't exist, use a default color
         fig = px.scatter_3d(
@@ -647,9 +836,40 @@ def create_3d_scatter(df, x_axis, y_axis, z_axis, color_by):
             z=z_axis,
             hover_name='serialNo' if 'serialNo' in df.columns else None,
             hover_data=['product', 'finalStatus'] if all(col in df.columns for col in ['product', 'finalStatus']) else None,
-            opacity=0.7,
-            size_max=10
+            opacity=0.8,
+            size_max=12,
+            color_discrete_sequence=['#1f77b4']  # Default blue color
         )
+    
+    # Update scene background for better contrast
+    fig.update_layout(
+        scene=dict(
+            bgcolor='#F8F9FA',
+            xaxis=dict(
+                backgroundcolor='#FFFFFF',
+                gridcolor='#E0E0E0',
+                showbackground=True,
+                zerolinecolor='#E0E0E0',
+                title=get_axis_title_with_units(x_axis)
+            ),
+            yaxis=dict(
+                backgroundcolor='#FFFFFF',
+                gridcolor='#E0E0E0',
+                showbackground=True,
+                zerolinecolor='#E0E0E0',
+                title=get_axis_title_with_units(y_axis)
+            ),
+            zaxis=dict(
+                backgroundcolor='#FFFFFF',
+                gridcolor='#E0E0E0',
+                showbackground=True,
+                zerolinecolor='#E0E0E0',
+                title=get_axis_title_with_units(z_axis)
+            )
+        ),
+        plot_bgcolor='#F8F9FA',
+        paper_bgcolor='#FFFFFF'
+    )
     
     return fig
 
@@ -683,6 +903,15 @@ def create_3d_surface(df, x_axis, y_axis, z_axis, color_by):
                 colorscale='Viridis',
                 opacity=0.8
             )])
+            
+            # Update axis titles with units
+            fig.update_layout(
+                scene=dict(
+                    xaxis_title=get_axis_title_with_units(x_axis),
+                    yaxis_title=get_axis_title_with_units(y_axis),
+                    zaxis_title=get_axis_title_with_units(z_axis)
+                )
+            )
             
             return fig
         except ImportError:
@@ -724,6 +953,15 @@ def create_3d_mesh(df, x_axis, y_axis, z_axis, color_by):
                 colorscale='Viridis',
                 opacity=0.8
             )])
+            
+            # Update axis titles with units
+            fig.update_layout(
+                scene=dict(
+                    xaxis_title=get_axis_title_with_units(x_axis),
+                    yaxis_title=get_axis_title_with_units(y_axis),
+                    zaxis_title=get_axis_title_with_units(z_axis)
+                )
+            )
             
             return fig
         except ImportError:
@@ -977,7 +1215,6 @@ def generate_coil_analysis_chart(coil_data):
     )
 
     return fig.to_html(full_html=False, include_plotlyjs='cdn')
-
 
 
 

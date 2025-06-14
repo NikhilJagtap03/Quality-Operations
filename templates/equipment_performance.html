@@ -1,26 +1,912 @@
 {% extends "base.html" %} {% block title %}Equipment Performance - Quality
-Operational Dashboard{% endblock %} {% block content %}
-<div class="container mx-auto p-6">
-  <h1 class="text-3xl font-bold text-gray-800 mb-8">Equipment Performance</h1>
-  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">
-      Overall Equipment Effectiveness (OEE)
-    </h2>
-    <p class="text-3xl font-bold text-blue-600">
-      {{ data.overall_equipment_effectiveness }}%
-    </p>
+Operational Dashboard{% endblock %} {% block additional_head %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+  body {
+    overflow-x: hidden;
+  }
+  .dashboard-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding-bottom: 2rem;
+  }
+  .filter-container {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  .filter-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .filter-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #4b5563;
+  }
+  .filter-input {
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+  }
+  .filter-button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .filter-button-primary {
+    background-color: #3b82f6;
+    color: white;
+  }
+  .filter-button-primary:hover {
+    background-color: #2563eb;
+  }
+  .filter-button-secondary {
+    background-color: #9ca3af;
+    color: white;
+  }
+  .filter-button-secondary:hover {
+    background-color: #6b7280;
+  }
+  .data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .data-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .data-card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #3b82f6;
+    margin: 0.5rem 0;
+  }
+  .data-card-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .chart-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 400px;
+  }
+  .chart-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .chart-card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #374151;
+  }
+  .chart-card-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .chart-card-body {
+    flex: 1;
+    min-height: 350px;
+    position: relative;
+    overflow: visible;
+  }
+  .loading-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+  }
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  .chart-container {
+    height: 100%;
+    width: 100%;
+    min-height: 300px;
+  }
+  .gauge-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+  }
+  .gauge-chart {
+    width: 100%;
+    height: 300px;
+  }
+  .gauge-label {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    color: #374151;
+    text-align: center;
+  }
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .action-button {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .action-button-primary {
+    background-color: #3b82f6;
+    color: white;
+  }
+  .action-button-primary:hover {
+    background-color: #2563eb;
+  }
+  .action-button-secondary {
+    background-color: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+  }
+  .action-button-secondary:hover {
+    background-color: #e5e7eb;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .chart-grid {
+      grid-template-columns: 1fr;
+    }
+    .data-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>
+{% endblock %} {% block content %}
+<h1 class="text-3xl font-bold text-gray-800 mb-4">Equipment Performance</h1>
+
+<div class="dashboard-container">
+  <!-- Action Buttons -->
+  <div class="action-buttons">
+    <a
+      href="{{ url_for('equipment_performance.add_equipment_data') }}"
+      class="action-button action-button-primary"
+    >
+      Add Equipment Data
+    </a>
   </div>
-  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">Availability</h2>
-    <p class="text-3xl font-bold text-blue-600">{{ data.availability }}%</p>
+
+  <!-- Filters -->
+  <div class="filter-container">
+    <div class="filter-group">
+      <div class="filter-item">
+        <label class="filter-label">From Date</label>
+        <input
+          type="date"
+          id="from-date"
+          class="filter-input"
+          placeholder="Select date"
+        />
+      </div>
+      <div class="filter-item">
+        <label class="filter-label">To Date</label>
+        <input
+          type="date"
+          id="to-date"
+          class="filter-input"
+          placeholder="Select date"
+        />
+      </div>
+      <div class="filter-item">
+        <label class="filter-label">Equipment</label>
+        <select id="equipment-id" class="filter-input">
+          <option value="">All Equipment</option>
+          {% for equipment in equipment_list %}
+          <option value="{{ equipment.id }}">{{ equipment.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-item mt-auto">
+        <button id="apply-filters" class="filter-button filter-button-primary">
+          Apply Filters
+        </button>
+      </div>
+      <div class="filter-item mt-auto">
+        <button
+          id="reset-filters"
+          class="filter-button filter-button-secondary"
+        >
+          Reset Filters
+        </button>
+      </div>
+    </div>
   </div>
-  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">Performance</h2>
-    <p class="text-3xl font-bold text-blue-600">{{ data.performance }}%</p>
+
+  <!-- Summary Cards -->
+  <div class="data-grid">
+    <div class="data-card">
+      <div class="data-card-label">Overall Equipment Effectiveness (OEE)</div>
+      <div class="data-card-value" id="oee-value">
+        {{ summary.overall_equipment_effectiveness }}%
+      </div>
+      <div class="data-card-label">Efficiency</div>
+    </div>
+    <div class="data-card">
+      <div class="data-card-label">Availability</div>
+      <div class="data-card-value" id="availability-value">
+        {{ summary.availability }}%
+      </div>
+      <div class="data-card-label">Uptime</div>
+    </div>
+    <div class="data-card">
+      <div class="data-card-label">Performance</div>
+      <div class="data-card-value" id="performance-value">
+        {{ summary.performance }}%
+      </div>
+      <div class="data-card-label">Speed</div>
+    </div>
+    <div class="data-card">
+      <div class="data-card-label">Quality</div>
+      <div class="data-card-value" id="quality-value">
+        {{ summary.quality }}%
+      </div>
+      <div class="data-card-label">Good Parts</div>
+    </div>
   </div>
-  <div class="bg-white rounded-lg shadow-md p-6">
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">Quality</h2>
-    <p class="text-3xl font-bold text-blue-600">{{ data.quality }}%</p>
+
+  <!-- Gauge Charts -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">OEE Gauge</div>
+      </div>
+      <div class="chart-card-body">
+        <div class="loading-indicator" id="oee-gauge-loading">
+          <div class="spinner"></div>
+        </div>
+        <div class="gauge-container">
+          <div class="gauge-chart" id="oee-gauge-chart"></div>
+          <div class="gauge-label">Overall Equipment Effectiveness</div>
+        </div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">OEE Components</div>
+      </div>
+      <div class="chart-card-body" style="min-height: 250px">
+        <div class="loading-indicator" id="components-gauge-loading">
+          <div class="spinner"></div>
+        </div>
+        <div class="chart-container" id="components-gauge-chart"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trend Charts -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">OEE Trend</div>
+      </div>
+      <div class="chart-card-body">
+        <div class="loading-indicator" id="oee-trend-loading">
+          <div class="spinner"></div>
+        </div>
+        <div class="chart-container" id="oee-trend-chart"></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title">OEE Components Trend</div>
+      </div>
+      <div class="chart-card-body">
+        <div class="loading-indicator" id="components-trend-loading">
+          <div class="spinner"></div>
+        </div>
+        <div class="chart-container" id="components-trend-chart"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Downtime Analysis -->
+  <div class="chart-card mb-6">
+    <div class="chart-card-header">
+      <div class="chart-card-title">Downtime Pareto Analysis</div>
+    </div>
+    <div class="chart-card-body">
+      <div class="loading-indicator" id="downtime-pareto-loading">
+        <div class="spinner"></div>
+      </div>
+      <div class="chart-container" id="downtime-pareto-chart"></div>
+    </div>
   </div>
 </div>
+{% endblock %} {% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  $(document).ready(function () {
+    // Initialize the dashboard
+    initializeDashboard();
+
+    function initializeDashboard() {
+      // Load initial data
+      loadSummaryData();
+      loadOEEGauge();
+      loadComponentsGauge();
+      loadOEETrend();
+      loadComponentsTrend();
+      loadDowntimePareto();
+
+      // Set up event handlers
+      setupEventHandlers();
+    }
+
+    function loadSummaryData() {
+      const fromDate = $("#from-date").val();
+      const toDate = $("#to-date").val();
+      const equipmentId = $("#equipment-id").val();
+
+      $.ajax({
+        url: "/equipment_performance/summary",
+        method: "GET",
+        data: {
+          from_date: fromDate,
+          to_date: toDate,
+          equipment_id: equipmentId,
+        },
+        success: function (response) {
+          // Update summary cards
+          $("#oee-value").text(response.overall_equipment_effectiveness + "%");
+          $("#availability-value").text(response.availability + "%");
+          $("#performance-value").text(response.performance + "%");
+          $("#quality-value").text(response.quality + "%");
+        },
+        error: function (xhr, status, error) {
+          console.error("Error loading summary data:", error);
+        },
+      });
+    }
+
+    function loadOEEGauge() {
+      $("#oee-gauge-loading").show();
+
+      const fromDate = $("#from-date").val();
+      const toDate = $("#to-date").val();
+      const equipmentId = $("#equipment-id").val();
+
+      $.ajax({
+        url: "/equipment_performance/summary",
+        method: "GET",
+        data: {
+          from_date: fromDate,
+          to_date: toDate,
+          equipment_id: equipmentId,
+        },
+        success: function (response) {
+          const oeeValue = response.overall_equipment_effectiveness;
+
+          // Create gauge chart
+          const data = [
+            {
+              type: "indicator",
+              mode: "gauge+number",
+              value: oeeValue,
+              title: { text: "OEE", font: { size: 24 } },
+              gauge: {
+                axis: {
+                  range: [null, 100],
+                  tickwidth: 1,
+                  tickcolor: "darkblue",
+                },
+                bar: { color: "#3b82f6" },
+                bgcolor: "white",
+                borderwidth: 2,
+                bordercolor: "gray",
+                steps: [
+                  { range: [0, 60], color: "#ef4444" },
+                  { range: [60, 85], color: "#f59e0b" },
+                  { range: [85, 100], color: "#10b981" },
+                ],
+                threshold: {
+                  line: { color: "red", width: 4 },
+                  thickness: 0.75,
+                  value: 85,
+                },
+              },
+            },
+          ];
+
+          const layout = {
+            width: 350,
+            height: 300,
+            margin: { t: 25, r: 25, l: 25, b: 25 },
+            paper_bgcolor: "white",
+            font: { color: "darkblue", family: "Arial" },
+            autosize: true,
+          };
+
+          const config = {
+            responsive: true,
+            displayModeBar: false,
+          };
+
+          Plotly.newPlot("oee-gauge-chart", data, layout, config);
+          $("#oee-gauge-loading").hide();
+        },
+        error: function (xhr, status, error) {
+          console.error("Error loading OEE gauge:", error);
+          $("#oee-gauge-loading").hide();
+        },
+      });
+    }
+
+    // Find the loadComponentsGauge function and replace it with the original version
+    function loadComponentsGauge() {
+      $("#components-gauge-loading").show();
+
+      const fromDate = $("#from-date").val();
+      const toDate = $("#to-date").val();
+      const equipmentId = $("#equipment-id").val();
+
+      $.ajax({
+        url: "/equipment_performance/summary",
+        method: "GET",
+        data: {
+          from_date: fromDate,
+          to_date: toDate,
+          equipment_id: equipmentId,
+        },
+        success: function (response) {
+          const availabilityValue = response.availability;
+          const performanceValue = response.performance;
+          const qualityValue = response.quality;
+
+          // Create components gauge chart
+          const data = [
+            {
+              type: "indicator",
+              mode: "gauge+number",
+              value: availabilityValue,
+              title: { text: "Availability", font: { size: 16 } },
+              domain: { row: 0, column: 0 },
+              gauge: {
+                axis: { range: [null, 100] },
+                bar: { color: "#3b82f6" },
+                steps: [
+                  { range: [0, 60], color: "#fee2e2" },
+                  { range: [60, 85], color: "#fef3c7" },
+                  { range: [85, 100], color: "#d1fae5" },
+                ],
+              },
+            },
+            {
+              type: "indicator",
+              mode: "gauge+number",
+              value: performanceValue,
+              title: { text: "Performance", font: { size: 16 } },
+              domain: { row: 0, column: 1 },
+              gauge: {
+                axis: { range: [null, 100] },
+                bar: { color: "#8b5cf6" },
+                steps: [
+                  { range: [0, 60], color: "#fee2e2" },
+                  { range: [60, 85], color: "#fef3c7" },
+                  { range: [85, 100], color: "#d1fae5" },
+                ],
+              },
+            },
+            {
+              type: "indicator",
+              mode: "gauge+number",
+              value: qualityValue,
+              title: { text: "Quality", font: { size: 16 } },
+              domain: { row: 0, column: 2 },
+              gauge: {
+                axis: { range: [null, 100] },
+                bar: { color: "#10b981" },
+                steps: [
+                  { range: [0, 60], color: "#fee2e2" },
+                  { range: [60, 85], color: "#fef3c7" },
+                  { range: [85, 100], color: "#d1fae5" },
+                ],
+              },
+            },
+          ];
+
+          const layout = {
+            grid: { rows: 1, columns: 3, pattern: "independent" },
+            width: 600,
+            height: 200,
+            margin: { t: 25, b: 25, l: 25, r: 25 },
+          };
+
+          Plotly.newPlot("components-gauge-chart", data, layout);
+          $("#components-gauge-loading").hide();
+        },
+        error: function (xhr, status, error) {
+          console.error("Error loading components gauge:", error);
+          $("#components-gauge-loading").hide();
+        },
+      });
+    }
+
+    function loadOEETrend() {
+      $("#oee-trend-loading").show();
+
+      const fromDate = $("#from-date").val();
+      const toDate = $("#to-date").val();
+      const equipmentId = $("#equipment-id").val();
+
+      $.ajax({
+        url: "/equipment_performance/oee_trend",
+        method: "GET",
+        data: {
+          from_date: fromDate,
+          to_date: toDate,
+          equipment_id: equipmentId,
+        },
+        success: function (response) {
+          if (response.dates.length === 0) {
+            $("#oee-trend-chart").html(
+              '<div class="flex h-full items-center justify-center text-gray-500">No OEE trend data available</div>'
+            );
+            $("#oee-trend-loading").hide();
+            return;
+          }
+
+          // Create OEE trend chart
+          const trace = {
+            x: response.dates,
+            y: response.oee_values,
+            type: "scatter",
+            mode: "lines+markers",
+            line: { color: "#3b82f6", width: 2 },
+            marker: { color: "#3b82f6", size: 8 },
+            hovertemplate: "Date: %{x}<br>OEE: %{y:.1f}%<extra></extra>",
+          };
+
+          const layout = {
+            title: "OEE Trend Over Time",
+            xaxis: {
+              title: "Date",
+              tickangle: 45,
+            },
+            yaxis: {
+              title: "OEE (%)",
+              range: [0, 100],
+            },
+            plot_bgcolor: "rgba(242, 244, 247, 1)",
+            paper_bgcolor: "white",
+            height: 350,
+            margin: { l: 50, r: 30, t: 50, b: 80 },
+            autosize: true,
+          };
+
+          const config = {
+            responsive: true,
+            displayModeBar: false,
+          };
+
+          Plotly.newPlot("oee-trend-chart", [trace], layout, config);
+          $("#oee-trend-loading").hide();
+        },
+        error: function (xhr, status, error) {
+          console.error("Error loading OEE trend:", error);
+          $("#oee-trend-loading").hide();
+          $("#oee-trend-chart").html(
+            '<div class="flex h-full items-center justify-center text-gray-500">Error loading OEE trend data</div>'
+          );
+        },
+      });
+    }
+
+    function loadComponentsTrend() {
+      $("#components-trend-loading").show();
+
+      const fromDate = $("#from-date").val();
+      const toDate = $("#to-date").val();
+      const equipmentId = $("#equipment-id").val();
+
+      $.ajax({
+        url: "/equipment_performance/component_trend",
+        method: "GET",
+        data: {
+          from_date: fromDate,
+          to_date: toDate,
+          equipment_id: equipmentId,
+        },
+        success: function (response) {
+          if (response.dates.length === 0) {
+            $("#components-trend-chart").html(
+              '<div class="flex h-full items-center justify-center text-gray-500">No component trend data available</div>'
+            );
+            $("#components-trend-loading").hide();
+            return;
+          }
+
+          // Create components trend chart
+          const availabilityTrace = {
+            x: response.dates,
+            y: response.availability_values,
+            type: "scatter",
+            mode: "lines+markers",
+            name: "Availability",
+            line: { color: "#3b82f6", width: 2 },
+            marker: { color: "#3b82f6", size: 6 },
+            hovertemplate:
+              "Date: %{x}<br>Availability: %{y:.1f}%<extra></extra>",
+          };
+
+          const performanceTrace = {
+            x: response.dates,
+            y: response.performance_values,
+            type: "scatter",
+            mode: "lines+markers",
+            name: "Performance",
+            line: { color: "#8b5cf6", width: 2 },
+            marker: { color: "#8b5cf6", size: 6 },
+            hovertemplate:
+              "Date: %{x}<br>Performance: %{y:.1f}%<extra></extra>",
+          };
+
+          const qualityTrace = {
+            x: response.dates,
+            y: response.quality_values,
+            type: "scatter",
+            mode: "lines+markers",
+            name: "Quality",
+            line: { color: "#10b981", width: 2 },
+            marker: { color: "#10b981", size: 6 },
+            hovertemplate: "Date: %{x}<br>Quality: %{y:.1f}%<extra></extra>",
+          };
+
+          const layout = {
+            title: "OEE Components Trend",
+            xaxis: {
+              title: "Date",
+              tickangle: 45,
+            },
+            yaxis: {
+              title: "Percentage (%)",
+              range: [0, 100],
+            },
+            legend: {
+              orientation: "h",
+              y: -0.2,
+            },
+            plot_bgcolor: "rgba(242, 244, 247, 1)",
+            paper_bgcolor: "white",
+            height: 350,
+            margin: { l: 50, r: 30, t: 50, b: 80 },
+            autosize: true,
+          };
+
+          const config = {
+            responsive: true,
+            displayModeBar: false,
+          };
+
+          Plotly.newPlot(
+            "components-trend-chart",
+            [availabilityTrace, performanceTrace, qualityTrace],
+            layout,
+            config
+          );
+          $("#components-trend-loading").hide();
+        },
+        error: function (xhr, status, error) {
+          console.error("Error loading components trend:", error);
+          $("#components-trend-loading").hide();
+          $("#components-trend-chart").html(
+            '<div class="flex h-full items-center justify-center text-gray-500">Error loading component trend data</div>'
+          );
+        },
+      });
+    }
+
+    function loadDowntimePareto() {
+      $("#downtime-pareto-loading").show();
+
+      const fromDate = $("#from-date").val();
+      const toDate = $("#to-date").val();
+      const equipmentId = $("#equipment-id").val();
+
+      $.ajax({
+        url: "/equipment_performance/downtime_pareto",
+        method: "GET",
+        data: {
+          from_date: fromDate,
+          to_date: toDate,
+          equipment_id: equipmentId,
+        },
+        success: function (response) {
+          if (response.reasons.length === 0) {
+            $("#downtime-pareto-chart").html(
+              '<div class="flex h-full items-center justify-center text-gray-500">No downtime data available</div>'
+            );
+            $("#downtime-pareto-loading").hide();
+            return;
+          }
+
+          // Calculate cumulative percentage
+          const total = response.durations.reduce((a, b) => a + b, 0);
+          let cumulative = 0;
+          const cumulativePercentage = response.durations.map((value) => {
+            cumulative += value;
+            return (cumulative / total) * 100;
+          });
+
+          // Create pareto chart
+          const barTrace = {
+            x: response.reasons,
+            y: response.durations,
+            type: "bar",
+            name: "Downtime (minutes)",
+            marker: {
+              color: "#3b82f6",
+            },
+            hovertemplate:
+              "Reason: %{x}<br>Duration: %{y} minutes<extra></extra>",
+          };
+
+          const lineTrace = {
+            x: response.reasons,
+            y: cumulativePercentage,
+            type: "scatter",
+            mode: "lines+markers",
+            name: "Cumulative %",
+            marker: {
+              color: "#ef4444",
+              size: 8,
+            },
+            line: {
+              color: "#ef4444",
+              width: 2,
+            },
+            yaxis: "y2",
+            hovertemplate:
+              "Reason: %{x}<br>Cumulative: %{y:.1f}%<extra></extra>",
+          };
+
+          const layout = {
+            title: "Downtime Pareto Analysis",
+            xaxis: {
+              title: "Downtime Reasons",
+              tickangle: 45,
+            },
+            yaxis: {
+              title: "Duration (minutes)",
+              side: "left",
+            },
+            yaxis2: {
+              title: "Cumulative Percentage",
+              side: "right",
+              overlaying: "y",
+              showgrid: false,
+              range: [0, 100],
+              ticksuffix: "%",
+            },
+            legend: {
+              orientation: "h",
+              y: -0.2,
+            },
+            plot_bgcolor: "rgba(242, 244, 247, 1)",
+            paper_bgcolor: "white",
+            height: 400,
+            margin: { l: 60, r: 60, t: 50, b: 100 },
+            autosize: true,
+          };
+
+          const config = {
+            responsive: true,
+            displayModeBar: false,
+          };
+
+          Plotly.newPlot(
+            "downtime-pareto-chart",
+            [barTrace, lineTrace],
+            layout,
+            config
+          );
+          $("#downtime-pareto-loading").hide();
+        },
+        error: function (xhr, status, error) {
+          console.error("Error loading downtime pareto:", error);
+          $("#downtime-pareto-loading").hide();
+          $("#downtime-pareto-chart").html(
+            '<div class="flex h-full items-center justify-center text-gray-500">Error loading downtime data</div>'
+          );
+        },
+      });
+    }
+
+    function setupEventHandlers() {
+      // Apply filters button
+      $("#apply-filters").on("click", function () {
+        loadSummaryData();
+        loadOEEGauge();
+        loadComponentsGauge();
+        loadOEETrend();
+        loadComponentsTrend();
+        loadDowntimePareto();
+      });
+
+      // Reset filters button
+      $("#reset-filters").on("click", function () {
+        $("#from-date").val("");
+        $("#to-date").val("");
+        $("#equipment-id").val("");
+
+        loadSummaryData();
+        loadOEEGauge();
+        loadComponentsGauge();
+        loadOEETrend();
+        loadComponentsTrend();
+        loadDowntimePareto();
+      });
+    }
+  });
+</script>
 {% endblock %}
